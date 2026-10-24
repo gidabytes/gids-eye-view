@@ -7,10 +7,13 @@ import './ocean/index.js'; // ocean view + exploration submarine
 import { createStandaloneApplication } from './standalone/application.js';
 import { describeError } from './standalone/errors.js';
 import './geo/boot.js'; // GEV-GEO: optional geo intelligence (VITE_GEO_ENABLED=false disables)
+import { deviceKey } from './lib/deviceKeys.js';
 
+// A key the user saved on the phone (POWER UP) wins over a build-time key;
+// the public APK has no build-time keys.
 const application = createStandaloneApplication({
-  googleApiKey: import.meta.env.GOOGLE_MAPS_API_KEY,
-  cesiumToken: import.meta.env.CESIUM_ION_TOKEN,
+  googleApiKey: deviceKey('GOOGLE_MAPS_API_KEY', import.meta.env.GOOGLE_MAPS_API_KEY),
+  cesiumToken: deviceKey('CESIUM_ION_TOKEN', import.meta.env.CESIUM_ION_TOKEN),
   allowQaRegistration: import.meta.env.DEV,
 });
 

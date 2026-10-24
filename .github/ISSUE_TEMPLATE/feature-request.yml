@@ -1,0 +1,29 @@
+name: Feature request
+description: An idea to make Gids Eyes View better on phones and tablets.
+title: "[Idea] "
+labels: ["enhancement", "mobile-beta"]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you like?
+      description: Describe the feature and how you would use it on your device.
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Performance on my hardware
+        - Touch UI / layout
+        - Voice
+        - Data layers
+        - Ocean / submarine
+        - Installation
+        - Other
+  - type: input
+    id: device
+    attributes:
+      label: Your device (optional)
+      placeholder: "e.g. Pixel 7, Android 15"

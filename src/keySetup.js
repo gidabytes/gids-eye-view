@@ -285,7 +285,9 @@ export async function initKeySetup({
   const storeLabel = () =>
     status?.store === 'pinokio-environment'
       ? 'your app configuration'
-      : 'your local .env';
+      : status?.store === 'device'
+        ? 'this phone'
+        : 'your local .env';
 
   const submitUpdates = async (updates, doneVerb) => {
     if (disposed || busy) return;

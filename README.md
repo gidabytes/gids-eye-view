@@ -1,15 +1,25 @@
-# 📱 Gids Eyes View — Android mobile edition
+# 📱 Gids Eyes View — Android mobile edition (public beta)
 
-**Gids Eyes View** (GIDS) by [Gidabytes](https://github.com/gidabytes) takes the God's Eye View globe to Android phones:
+**Gids Eyes View** (GIDS) by [Gidabytes](https://github.com/gidabytes) takes the God's Eye View globe to Android phones.
 
-- **Native Android app** (Capacitor), built by one script: `./gids-android.sh --build` (JDK 21, Android SDK). The APK runs without a local server: an embedded proxy calls the public feeds directly.
+## Get the beta (0.1.0-beta.1)
+
+- **Download:** `gids-eyes-view-0.1.0-beta.1.apk` from [Releases](https://github.com/gidabytes/gids-eye-view/releases). Android 7.0 or newer.
+- **Install from your laptop, step by step:** `./gids-install.sh`. It downloads the APK, checks it, finds your phone over USB, checks it can run the app, installs it, and opens it.
+- **Full guide:** [docs/MOBILE-BETA.md](docs/MOBILE-BETA.md). It covers laptop and phone-only installs, Windows, troubleshooting, and the roadmap to support every kind of Android device.
+- **No API keys are built in.** When a feature needs one (NASA fires, live traffic, Cesium 3D terrain), the app asks for your own free key and keeps it only on your phone. You can also add keys any time with **POWER UP**.
+- **Beta feedback:** open a **Device report** or **Feature request** in [Issues](https://github.com/gidabytes/gids-eye-view/issues). Play with it, explore, and improve it if you like; pull requests are welcome.
+
+## What it adds
+
+- **Native Android app** (Capacitor), built by one script: `./gids-android.sh --build` (JDK 21, Android SDK). It asks for each missing key as it builds. `--public` makes the keyless, shareable APK. The APK runs without a local server: an embedded proxy calls the public feeds directly.
 - **On-device voice:** the phone mic uses Google speech recognition (say "fly to Cebu"). The desktop browser keeps the Gemini Live voice.
 - **Touch UI:** satellite and rail action buttons, a bottom sheet for layers, and tap-the-mic voice hints.
 - **Ocean view** with a pilotable exploration submarine (`src/ocean`, Cesium World Bathymetry) and **geo intel** search (`src/geo`).
 
 It is an unofficial fork of the community [Free Edition](https://github.com/electronictechshow-netizen/gods-eye-view-free), which is based on [God's Eye View](https://github.com/bilawalsidhu/gods-eye-view) by **Bilawal Sidhu** (MIT). It is not affiliated with or endorsed by either. All credit for the original idea, design and nearly all of the code goes to the original project, so please star it.
 
-> **Keys:** a debug APK built from your `.env` contains your API keys. Install it on your own devices only and never publish it. Build your own APK with your own free keys.
+> **Keys:** share only the keyless APK from Releases, or one built with `./gids-android.sh --public`. That build checks itself and stops if a key slipped in. An APK built with `--build` contains the keys from your `gids-keys.env`/`.env`: install it on your own devices only and never publish it.
 
 Everything below is the Free Edition's own guide, unchanged.
 

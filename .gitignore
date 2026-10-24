@@ -30,6 +30,8 @@ gids-keys.env
 # Local clutter kept out of the repo (2026-10-24 cleanup)
 _archive/
 .gev-backup/
+# APKs are shared as GitHub release assets, not committed
+release/
 gods-eye-view-free/
 src.bak.*/
 *.bak

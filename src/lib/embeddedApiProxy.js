@@ -1,25 +1,36 @@
 /**
  * Embedded API proxy — makes the standalone APK work without a Vite server.
- * NOTE: keys shipped in the APK are extractable. Route private credentials
- * through a backend for production.
+ * The public APK ships with NO keys: each user pastes their own, either when a
+ * feature first needs one (a prompt appears) or in the POWER UP dialog. Keys
+ * are saved only on that phone (see deviceKeys.js).
  */
 import { Capacitor } from '@capacitor/core';
 import { nativeFetch } from './nativeFetch.js';
+import { deviceKey, deviceKeyStatus, promptForKey, saveDeviceKeys } from './deviceKeys.js';
 
 const env = (typeof import.meta !== 'undefined' && import.meta.env) || {};
+const NATIVE = Boolean(Capacitor?.isNativePlatform?.());
 const APK_MODE =
-  Boolean(Capacitor?.isNativePlatform?.()) ||
+  NATIVE ||
   env.VITE_API_PROXY === 'embedded' ||
   env.API_PROXY === 'embedded';
 
 if (!APK_MODE) {
   console.info('[APK-Proxy] disabled (not in native mode)');
 } else {
-  const FIRMS_KEY   = env.VITE_FIRMS_MAP_KEY        || env.FIRMS_MAP_KEY        || '';
-  const TOMTOM_KEY  = env.VITE_TOMTOM_API_KEY       || env.TOMTOM_API_KEY       || '';
-  const MAPILLARY   = env.VITE_MAPILLARY_TOKEN      || env.MAPILLARY_ACCESS_TOKEN || '';
-  const OPENSKY_ID  = env.VITE_OPENSKY_CLIENT_ID    || env.OPENSKY_CLIENT_ID    || '';
-  const OPENSKY_SEC = env.VITE_OPENSKY_CLIENT_SECRET|| env.OPENSKY_CLIENT_SECRET|| '';
+  // Build-time values (empty in the public APK); a key saved on the phone wins.
+  const BUILD_ENV = {
+    FIRMS_MAP_KEY: env.VITE_FIRMS_MAP_KEY || env.FIRMS_MAP_KEY || '',
+    TOMTOM_API_KEY: env.VITE_TOMTOM_API_KEY || env.TOMTOM_API_KEY || '',
+    MAPILLARY_ACCESS_TOKEN: env.VITE_MAPILLARY_TOKEN || env.MAPILLARY_ACCESS_TOKEN || '',
+    OPENSKY_CLIENT_ID: env.VITE_OPENSKY_CLIENT_ID || env.OPENSKY_CLIENT_ID || '',
+    OPENSKY_CLIENT_SECRET: env.VITE_OPENSKY_CLIENT_SECRET || env.OPENSKY_CLIENT_SECRET || '',
+    CESIUM_ION_TOKEN: env.CESIUM_ION_TOKEN || '',
+    GOOGLE_MAPS_API_KEY: env.GOOGLE_MAPS_API_KEY || '',
+  };
+  const key = (name) => deviceKey(name, BUILD_ENV[name]);
+  const jsonResponse = (body, status = 200) =>
+    new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 
   // same result shape as the app's server (src/nominatimGeocode.js)
   function nominatimToGoogle(rows) {
@@ -38,18 +49,18 @@ if (!APK_MODE) {
     }] };
   }
   const RULES = [
-    { match: /^\/api\/firms(?:\?|$)/, build: () => ({
-        url: `https://firms.modaps.eosdis.nasa.gov/api/area/csv/${FIRMS_KEY}/VIIRS_SNPP_NRT/world/1`,
+    { match: /^\/api\/firms(?:\?|$)/, needs: 'firms', build: () => ({
+        url: `https://firms.modaps.eosdis.nasa.gov/api/area/csv/${key('FIRMS_MAP_KEY')}/VIIRS_SNPP_NRT/world/1`,
     })},
     { match: /^\/api\/fire-perimeters\/inciweb/, build: () => ({ url: 'https://inciweb.wildfire.gov/incidents/rss.xml' })},
     { match: /^\/api\/fire-perimeters/, build: () => ({
         url: 'https://services3.arcgis.com/T4QMspbfLg3qTGWY/arcgis/rest/services/WFIGS_Interagency_Perimeters/FeatureServer/0/query?where=1%3D1&outFields=*&f=geojson',
     })},
-    { match: /^\/api\/tomtom\/flow\/(.+)$/, build: (_u, m) => ({
-        url: `https://api.tomtom.com/traffic/map/4/tile/flow/relative0/${m[1]}.png?key=${TOMTOM_KEY}`,
+    { match: /^\/api\/tomtom\/flow\/(.+)$/, needs: 'tomtom', build: (_u, m) => ({
+        url: `https://api.tomtom.com/traffic/map/4/tile/flow/relative0/${m[1]}.png?key=${key('TOMTOM_API_KEY')}`,
     })},
-    { match: /^\/api\/tomtom\/status/, build: () => ({
-        url: `https://api.tomtom.com/traffic/services/4/flowSegmentData/absolute/10/json?point=0,0&key=${TOMTOM_KEY}`,
+    { match: /^\/api\/tomtom\/status/, needs: 'tomtom', build: () => ({
+        url: `https://api.tomtom.com/traffic/services/4/flowSegmentData/absolute/10/json?point=0,0&key=${key('TOMTOM_API_KEY')}`,
     })},
     { match: /^\/api\/geocode(?:\?|$)/, build: (u) => {
         const q = new URL(u, 'https://x').searchParams;
@@ -72,18 +83,26 @@ if (!APK_MODE) {
     { match: /^\/api\/cctv\/sources/, build: () => ({ url: 'https://raw.githubusercontent.com/opencctv/cameras/main/cameras.json' })},
     { match: /^\/api\/cctv\/health/,  build: () => null },
     { match: /^\/api\/opensky|^\/api\/flights/, build: () => {
-        const creds = (OPENSKY_ID && OPENSKY_SEC)
-          ? `&client_id=${encodeURIComponent(OPENSKY_ID)}&client_secret=${encodeURIComponent(OPENSKY_SEC)}`
+        // optional: anonymous OpenSky works, so this never prompts
+        const id = key('OPENSKY_CLIENT_ID'), secret = key('OPENSKY_CLIENT_SECRET');
+        const creds = (id && secret)
+          ? `&client_id=${encodeURIComponent(id)}&client_secret=${encodeURIComponent(secret)}`
           : '';
         return { url: `https://opensky-network.org/api/states/all?_=1${creds}` };
     }},
     { match: /^\/api\/ais/, build: () => null },
     { match: /^\/api\/mapillary/, build: (u) => ({
         url: 'https://graph.mapillary.com' + u.replace(/^\/api\/mapillary/, '') +
-             (u.includes('?') ? '&' : '?') + 'access_token=' + encodeURIComponent(MAPILLARY),
+             (u.includes('?') ? '&' : '?') + 'access_token=' + encodeURIComponent(key('MAPILLARY_ACCESS_TOKEN')),
     })},
     { match: /^\/api\/local-receivers/, build: () => null },
   ];
+
+  function ruleFor(originalUrl) {
+    const m = originalUrl.match(/^https?:\/\/[^/]+(\/api\/[^\s]*)$/);
+    const path = m ? m[1] : originalUrl;
+    return RULES.find((rule) => rule.match.test(path)) || null;
+  }
 
   function resolve(originalUrl, init) {
     const m = originalUrl.match(/^https?:\/\/[^/]+(\/api\/[^\s]*)$/);
@@ -110,6 +129,24 @@ if (!APK_MODE) {
     else return originalFetch(input, init);
 
     if (!url.startsWith('/api/')) return originalFetch(input, init);
+
+    // On the phone the POWER UP dialog saves keys on the device, not in a .env.
+    if (NATIVE && url.startsWith('/api/setup/status')) return jsonResponse(deviceKeyStatus(BUILD_ENV));
+    if (NATIVE && url.startsWith('/api/setup/keys')) {
+      let body = {};
+      try { body = JSON.parse(init?.body || '{}'); } catch { return jsonResponse({ ok: false, error: 'Unreadable keys' }, 400); }
+      const result = saveDeviceKeys(body, BUILD_ENV);
+      // map keys are read at start-up, so reload once the dialog has said "saved"
+      if (result.ok) setTimeout(() => window.location.reload(), 1500);
+      return jsonResponse(result, result.ok ? 200 : 400);
+    }
+
+    // A feature that needs a key the phone does not have yet: ask for it now.
+    const needs = ruleFor(url)?.needs;
+    if (NATIVE && needs && !(await promptForKey(needs, BUILD_ENV))) {
+      return jsonResponse({ error: 'API key needed', key: needs }, 503);
+    }
+
     const resolved = resolve(url, init);
     if (!resolved) { console.warn('[APK-Proxy] no rewrite for', url); return originalFetch(input, init); }
     if (resolved.init) realInit = { ...(init || {}), ...resolved.init };
@@ -144,8 +181,8 @@ if (!APK_MODE) {
 
   console.info('[APK-Proxy] installed. Rules:', RULES.length);
   console.info('[APK-Proxy] keys present:',
-    'firms=' + Boolean(FIRMS_KEY),
-    'tomtom=' + Boolean(TOMTOM_KEY),
-    'mapillary=' + Boolean(MAPILLARY),
-    'opensky=' + Boolean(OPENSKY_ID && OPENSKY_SEC));
+    'firms=' + Boolean(key('FIRMS_MAP_KEY')),
+    'tomtom=' + Boolean(key('TOMTOM_API_KEY')),
+    'mapillary=' + Boolean(key('MAPILLARY_ACCESS_TOKEN')),
+    'opensky=' + Boolean(key('OPENSKY_CLIENT_ID') && key('OPENSKY_CLIENT_SECRET')));
 }

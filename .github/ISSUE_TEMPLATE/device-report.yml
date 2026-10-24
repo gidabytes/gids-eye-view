@@ -1,0 +1,51 @@
+name: Device report (mobile beta)
+description: Tell us how Gids Eyes View runs on your Android device — good or bad.
+title: "[Device] <phone model> — <works / problem>"
+labels: ["device-report", "mobile-beta"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for testing the beta! Reports from many different phones decide what we improve next.
+        **Never paste API keys here.** If you used `./gids-install.sh`, attach the `gids-device-report-*.txt` it saved (it has no personal data).
+  - type: input
+    id: device
+    attributes:
+      label: Phone or tablet
+      placeholder: "e.g. Samsung Galaxy A14, Xiaomi Redmi Note 12"
+    validations:
+      required: true
+  - type: input
+    id: android
+    attributes:
+      label: Android version
+      placeholder: "e.g. Android 13"
+    validations:
+      required: true
+  - type: input
+    id: app
+    attributes:
+      label: App version
+      placeholder: "e.g. 0.1.0-beta.1"
+  - type: dropdown
+    id: overall
+    attributes:
+      label: How does it run?
+      options:
+        - Smooth
+        - Usable but slow
+        - Globe black / frozen
+        - Crashes or will not open
+        - Will not install
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: Which layers or features you used, what you expected, what you saw. Screenshots welcome.
+  - type: textarea
+    id: report
+    attributes:
+      label: Device report file / logs
+      description: Drag in gids-device-report-*.txt. Optional logs — `adb logcat | grep -E "GEV|APK-Proxy|Cesium|chromium"` (check them for anything private first).

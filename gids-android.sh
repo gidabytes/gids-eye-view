@@ -1,7 +1,21 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  Gids Eyes View - Android build pipeline (v52)
+#  Gids Eyes View - Android build pipeline (v53, mobile beta)
 #  Copyright (c) 2026 Gidabytes - MIT License
+#
+#  v53 over v52 (public mobile beta):
+#    * --public: builds the shareable APK with NO API keys inside, then scans
+#      the web bundle and the APK and refuses to finish if any key is found.
+#      Output: release/gids-eyes-view-<version>.apk + .sha256.
+#    * In the app, each user enters their own keys: a prompt appears the first
+#      time a feature needs one (NASA FIRMS fires, TomTom traffic), and the
+#      POWER UP dialog saves keys on the phone (src/lib/deviceKeys.js).
+#    * Interactive key setup: building your own APK asks for each missing key
+#      (hidden input, Enter skips) and saves it to gids-keys.env (chmod 600).
+#      --no-prompt or GEV_NO_PROMPT=1 turns the questions off.
+#    * FIX: .env (with keys) was copied to .env.example when the template was
+#      missing; that file is committed. Never copied now.
+#    * Web voice, voice hints, ocean patch, bundle check fixes (see CHANGELOG).
 #
 #  v52 over v51:
 #    * The GEV mic is bound to Google speech recognition, hidden in the
@@ -129,6 +143,8 @@
 #    --mobile-ui --icon --layers --doctor --build --release --install
 #    --verify --devices --voice-setup --ocean [--ocean-tools] [--ocean-patch=P|--ocean-zip=Z]
 #    --geo --geo-remove --render-guard --sync --clean --all --help
+#    --public       keyless shareable APK (implies --build)
+#    --no-prompt    never ask for keys (CI / scripted builds)
 # =============================================================================
 
 set -uo pipefail
@@ -214,8 +230,12 @@ OCEAN_TOOLS=0
 BATHYMETRY_ASSET_ID="2426648"
 MODE=""
 FORCE_KEYS=0
+PUBLIC_BUILD="${GEV_PUBLIC_BUILD:-0}"
+NO_PROMPT="${GEV_NO_PROMPT:-0}"
 for arg in "$@"; do
     case "$arg" in
+        --public)       PUBLIC_BUILD=1; [ -z "$MODE" ] && MODE="build" ;;
+        --no-prompt)    NO_PROMPT=1 ;;
         --setup)        MODE="setup" ;;
         --init)         MODE="init" ;;
         --tune-system)  MODE="tune-system" ;;
@@ -334,14 +354,80 @@ write_keys_template() {
     warn "Created empty $KEYS_FILE — fill in your (rotated) keys and re-run."
 }
 
+# What each key switches on, and where to get it ("what|url").
+key_info() {
+    case "$1" in
+        KEY_CESIUM_ION_TOKEN)       echo "3D terrain and the photoreal globe (free)|https://ion.cesium.com/tokens" ;;
+        KEY_GEMINI_API_KEY)         echo "Gemini voice in the desktop browser (free tier; the phone uses Google speech)|https://aistudio.google.com/apikey" ;;
+        KEY_GROQ_API_KEY)           echo "AI summary line in the HUD, desktop (free tier)|https://console.groq.com/keys" ;;
+        KEY_AISSTREAM_API_KEY)      echo "Live ships worldwide, desktop (free)|https://aisstream.io/account" ;;
+        KEY_FIRMS_MAP_KEY)          echo "NASA active-fire detections (free)|https://firms.modaps.eosdis.nasa.gov/api/map_key/" ;;
+        KEY_TOMTOM_API_KEY)         echo "Live traffic (free)|https://my.tomtom.com/keys" ;;
+        KEY_OPENSKY_CLIENT_ID)      echo "More flight-polling credits (optional, free)|https://opensky-network.org/my-opensky/account" ;;
+        KEY_OPENSKY_CLIENT_SECRET)  echo "More flight-polling credits (optional, free)|https://opensky-network.org/my-opensky/account" ;;
+        KEY_MAPILLARY_ACCESS_TOKEN) echo "Street-level imagery (free)|https://www.mapillary.com/dashboard/developers" ;;
+        KEY_GOOGLE_MAPS_API_KEY)    echo "Optional Google 3D and places (needs a billing account)|https://developers.google.com/maps/documentation/tile/get-api-key" ;;
+        KEY_GOOGLE_MAPS_MAP_ID)     echo "Optional Google map style id|https://console.cloud.google.com/google/maps-apis/studio/maps" ;;
+        *)                          echo "Optional key|" ;;
+    esac
+}
+# Upsert KEY="value" into the keys file. The value comes on stdin (never argv).
+save_key_to_file() {
+    python3 -c '
+import pathlib, re, sys
+path, key = pathlib.Path(sys.argv[1]), sys.argv[2]
+val = sys.stdin.read().strip()
+lines = path.read_text().splitlines() if path.exists() else []
+pat = re.compile(r"^" + re.escape(key) + r"=")
+for i, line in enumerate(lines):
+    if pat.match(line):
+        lines[i] = f"{key}=\"{val}\""; break
+else:
+    lines.append(f"{key}=\"{val}\"")
+path.write_text("\n".join(lines) + "\n")
+' "$KEYS_FILE" "$1"
+    chmod 600 "$KEYS_FILE" 2>/dev/null || true
+}
+# Interactive setup: ask for every key that is still empty. Enter skips.
+prompt_missing_keys() {
+    if [ "$PUBLIC_BUILD" = "1" ] || [ "$NO_PROMPT" = "1" ] || [ ! -t 0 ]; then return 0; fi
+    local k kinfo val asked=0 saved=0
+    for k in "${KEY_NAMES[@]}"; do
+        [ -n "${!k}" ] && continue
+        env_has_key "${k#KEY_}" && continue
+        if (( asked == 0 )); then
+            printf '\n%sAPI keys%s — each free key switches on one feature. Keys are typed hidden and\n' "$BOLD" "$RESET"
+            printf 'saved only in %s on this computer. Press Enter to skip any key.\n' "$KEYS_FILE"
+        fi
+        asked=1
+        kinfo="$(key_info "$k")"
+        printf '\n%s%s%s: %s\n' "$BOLD" "${k#KEY_}" "$RESET" "${kinfo%%|*}"
+        [ -n "${kinfo#*|}" ] && printf '  Get it at: %s\n' "${kinfo#*|}"
+        val=""
+        IFS= read -r -s -p "  Paste key (hidden, Enter to skip): " val || true; echo
+        val="$(printf '%s' "$val" | tr -d '[:space:]')"
+        [ -z "$val" ] && { info "  skipped"; continue; }
+        if [[ ! "$val" =~ ^[[:graph:]]+$ ]] || [[ "$val" == *[\"\'\`\$\\#]* ]]; then
+            warn "  That does not look like a key (quotes, #, \$, \\ or spaces) — skipped."; continue
+        fi
+        printf -v "$k" '%s' "$val"; export "${k?}"
+        printf '%s' "$val" | save_key_to_file "$k"
+        saved=$((saved+1)); ok "  saved"
+    done
+    (( saved > 0 )) && ok "$saved key(s) saved to $KEYS_FILE (chmod 600). Never commit or share that file."
+    return 0
+}
+
 do_keys() {
     info "Writing .env (preserve=$((1 - FORCE_KEYS))) from $KEYS_FILE ..."
     write_keys_template
+    prompt_missing_keys
     local missing=0 k
     for k in "${KEY_NAMES[@]}"; do [ -n "${!k}" ] || missing=$((missing+1)); done
     (( missing > 0 )) && warn "$missing key(s) empty in $KEYS_FILE — those layers will be disabled."
 
-    [ -f .env ] && [ ! -f .env.example ] && cp .env .env.example || true
+    # Never create .env.example from .env: .env holds real keys and the example is committed.
+    [ -f .env.example ] || warn ".env.example missing — restore it from the repository (do not copy .env)."
 
     if [ ! -f .env ] || ! grep -q '^#  Gids Eyes View - API keys' .env 2>/dev/null; then
         {
@@ -2117,26 +2203,37 @@ apply_apk_proxy() {
     cat > src/lib/embeddedApiProxy.js <<'JSPROXY'
 /**
  * Embedded API proxy — makes the standalone APK work without a Vite server.
- * NOTE: keys shipped in the APK are extractable. Route private credentials
- * through a backend for production.
+ * The public APK ships with NO keys: each user pastes their own, either when a
+ * feature first needs one (a prompt appears) or in the POWER UP dialog. Keys
+ * are saved only on that phone (see deviceKeys.js).
  */
 import { Capacitor } from '@capacitor/core';
 import { nativeFetch } from './nativeFetch.js';
+import { deviceKey, deviceKeyStatus, promptForKey, saveDeviceKeys } from './deviceKeys.js';
 
 const env = (typeof import.meta !== 'undefined' && import.meta.env) || {};
+const NATIVE = Boolean(Capacitor?.isNativePlatform?.());
 const APK_MODE =
-  Boolean(Capacitor?.isNativePlatform?.()) ||
+  NATIVE ||
   env.VITE_API_PROXY === 'embedded' ||
   env.API_PROXY === 'embedded';
 
 if (!APK_MODE) {
   console.info('[APK-Proxy] disabled (not in native mode)');
 } else {
-  const FIRMS_KEY   = env.VITE_FIRMS_MAP_KEY        || env.FIRMS_MAP_KEY        || '';
-  const TOMTOM_KEY  = env.VITE_TOMTOM_API_KEY       || env.TOMTOM_API_KEY       || '';
-  const MAPILLARY   = env.VITE_MAPILLARY_TOKEN      || env.MAPILLARY_ACCESS_TOKEN || '';
-  const OPENSKY_ID  = env.VITE_OPENSKY_CLIENT_ID    || env.OPENSKY_CLIENT_ID    || '';
-  const OPENSKY_SEC = env.VITE_OPENSKY_CLIENT_SECRET|| env.OPENSKY_CLIENT_SECRET|| '';
+  // Build-time values (empty in the public APK); a key saved on the phone wins.
+  const BUILD_ENV = {
+    FIRMS_MAP_KEY: env.VITE_FIRMS_MAP_KEY || env.FIRMS_MAP_KEY || '',
+    TOMTOM_API_KEY: env.VITE_TOMTOM_API_KEY || env.TOMTOM_API_KEY || '',
+    MAPILLARY_ACCESS_TOKEN: env.VITE_MAPILLARY_TOKEN || env.MAPILLARY_ACCESS_TOKEN || '',
+    OPENSKY_CLIENT_ID: env.VITE_OPENSKY_CLIENT_ID || env.OPENSKY_CLIENT_ID || '',
+    OPENSKY_CLIENT_SECRET: env.VITE_OPENSKY_CLIENT_SECRET || env.OPENSKY_CLIENT_SECRET || '',
+    CESIUM_ION_TOKEN: env.CESIUM_ION_TOKEN || '',
+    GOOGLE_MAPS_API_KEY: env.GOOGLE_MAPS_API_KEY || '',
+  };
+  const key = (name) => deviceKey(name, BUILD_ENV[name]);
+  const jsonResponse = (body, status = 200) =>
+    new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 
   // same result shape as the app's server (src/nominatimGeocode.js)
   function nominatimToGoogle(rows) {
@@ -2155,18 +2252,18 @@ if (!APK_MODE) {
     }] };
   }
   const RULES = [
-    { match: /^\/api\/firms(?:\?|$)/, build: () => ({
-        url: `https://firms.modaps.eosdis.nasa.gov/api/area/csv/${FIRMS_KEY}/VIIRS_SNPP_NRT/world/1`,
+    { match: /^\/api\/firms(?:\?|$)/, needs: 'firms', build: () => ({
+        url: `https://firms.modaps.eosdis.nasa.gov/api/area/csv/${key('FIRMS_MAP_KEY')}/VIIRS_SNPP_NRT/world/1`,
     })},
     { match: /^\/api\/fire-perimeters\/inciweb/, build: () => ({ url: 'https://inciweb.wildfire.gov/incidents/rss.xml' })},
     { match: /^\/api\/fire-perimeters/, build: () => ({
         url: 'https://services3.arcgis.com/T4QMspbfLg3qTGWY/arcgis/rest/services/WFIGS_Interagency_Perimeters/FeatureServer/0/query?where=1%3D1&outFields=*&f=geojson',
     })},
-    { match: /^\/api\/tomtom\/flow\/(.+)$/, build: (_u, m) => ({
-        url: `https://api.tomtom.com/traffic/map/4/tile/flow/relative0/${m[1]}.png?key=${TOMTOM_KEY}`,
+    { match: /^\/api\/tomtom\/flow\/(.+)$/, needs: 'tomtom', build: (_u, m) => ({
+        url: `https://api.tomtom.com/traffic/map/4/tile/flow/relative0/${m[1]}.png?key=${key('TOMTOM_API_KEY')}`,
     })},
-    { match: /^\/api\/tomtom\/status/, build: () => ({
-        url: `https://api.tomtom.com/traffic/services/4/flowSegmentData/absolute/10/json?point=0,0&key=${TOMTOM_KEY}`,
+    { match: /^\/api\/tomtom\/status/, needs: 'tomtom', build: () => ({
+        url: `https://api.tomtom.com/traffic/services/4/flowSegmentData/absolute/10/json?point=0,0&key=${key('TOMTOM_API_KEY')}`,
     })},
     { match: /^\/api\/geocode(?:\?|$)/, build: (u) => {
         const q = new URL(u, 'https://x').searchParams;
@@ -2189,18 +2286,26 @@ if (!APK_MODE) {
     { match: /^\/api\/cctv\/sources/, build: () => ({ url: 'https://raw.githubusercontent.com/opencctv/cameras/main/cameras.json' })},
     { match: /^\/api\/cctv\/health/,  build: () => null },
     { match: /^\/api\/opensky|^\/api\/flights/, build: () => {
-        const creds = (OPENSKY_ID && OPENSKY_SEC)
-          ? `&client_id=${encodeURIComponent(OPENSKY_ID)}&client_secret=${encodeURIComponent(OPENSKY_SEC)}`
+        // optional: anonymous OpenSky works, so this never prompts
+        const id = key('OPENSKY_CLIENT_ID'), secret = key('OPENSKY_CLIENT_SECRET');
+        const creds = (id && secret)
+          ? `&client_id=${encodeURIComponent(id)}&client_secret=${encodeURIComponent(secret)}`
           : '';
         return { url: `https://opensky-network.org/api/states/all?_=1${creds}` };
     }},
     { match: /^\/api\/ais/, build: () => null },
     { match: /^\/api\/mapillary/, build: (u) => ({
         url: 'https://graph.mapillary.com' + u.replace(/^\/api\/mapillary/, '') +
-             (u.includes('?') ? '&' : '?') + 'access_token=' + encodeURIComponent(MAPILLARY),
+             (u.includes('?') ? '&' : '?') + 'access_token=' + encodeURIComponent(key('MAPILLARY_ACCESS_TOKEN')),
     })},
     { match: /^\/api\/local-receivers/, build: () => null },
   ];
+
+  function ruleFor(originalUrl) {
+    const m = originalUrl.match(/^https?:\/\/[^/]+(\/api\/[^\s]*)$/);
+    const path = m ? m[1] : originalUrl;
+    return RULES.find((rule) => rule.match.test(path)) || null;
+  }
 
   function resolve(originalUrl, init) {
     const m = originalUrl.match(/^https?:\/\/[^/]+(\/api\/[^\s]*)$/);
@@ -2227,6 +2332,24 @@ if (!APK_MODE) {
     else return originalFetch(input, init);
 
     if (!url.startsWith('/api/')) return originalFetch(input, init);
+
+    // On the phone the POWER UP dialog saves keys on the device, not in a .env.
+    if (NATIVE && url.startsWith('/api/setup/status')) return jsonResponse(deviceKeyStatus(BUILD_ENV));
+    if (NATIVE && url.startsWith('/api/setup/keys')) {
+      let body = {};
+      try { body = JSON.parse(init?.body || '{}'); } catch { return jsonResponse({ ok: false, error: 'Unreadable keys' }, 400); }
+      const result = saveDeviceKeys(body, BUILD_ENV);
+      // map keys are read at start-up, so reload once the dialog has said "saved"
+      if (result.ok) setTimeout(() => window.location.reload(), 1500);
+      return jsonResponse(result, result.ok ? 200 : 400);
+    }
+
+    // A feature that needs a key the phone does not have yet: ask for it now.
+    const needs = ruleFor(url)?.needs;
+    if (NATIVE && needs && !(await promptForKey(needs, BUILD_ENV))) {
+      return jsonResponse({ error: 'API key needed', key: needs }, 503);
+    }
+
     const resolved = resolve(url, init);
     if (!resolved) { console.warn('[APK-Proxy] no rewrite for', url); return originalFetch(input, init); }
     if (resolved.init) realInit = { ...(init || {}), ...resolved.init };
@@ -2261,10 +2384,10 @@ if (!APK_MODE) {
 
   console.info('[APK-Proxy] installed. Rules:', RULES.length);
   console.info('[APK-Proxy] keys present:',
-    'firms=' + Boolean(FIRMS_KEY),
-    'tomtom=' + Boolean(TOMTOM_KEY),
-    'mapillary=' + Boolean(MAPILLARY),
-    'opensky=' + Boolean(OPENSKY_ID && OPENSKY_SEC));
+    'firms=' + Boolean(key('FIRMS_MAP_KEY')),
+    'tomtom=' + Boolean(key('TOMTOM_API_KEY')),
+    'mapillary=' + Boolean(key('MAPILLARY_ACCESS_TOKEN')),
+    'opensky=' + Boolean(key('OPENSKY_CLIENT_ID') && key('OPENSKY_CLIENT_SECRET')));
 }
 JSPROXY
     ok "src/lib/embeddedApiProxy.js written"
@@ -3542,9 +3665,68 @@ build_web() {
     else
         npm install --no-audit --no-fund || die "npm install failed."
     fi
-    npm run build || die "npm run build failed."
+    if [ "$PUBLIC_BUILD" = "1" ]; then
+        # Values already in the environment beat .env in Vite, so blank every key.
+        local blank=() n
+        for n in "${PUBLIC_SECRET_VARS[@]}"; do blank+=("$n=" "VITE_$n="); done
+        info "Public build: bundling NO API keys (users enter their own in the app)."
+        env "${blank[@]}" VITE_MAPILLARY_TOKEN= npm run build || die "npm run build failed."
+    else
+        npm run build || die "npm run build failed."
+    fi
     [ -d "$WEB_DIR" ] || die "$WEB_DIR not produced."
     ok "Web assets ready."
+}
+# Every variable that can hold a credential. --public blanks all of them.
+PUBLIC_SECRET_VARS=(
+    CESIUM_ION_TOKEN GEMINI_API_KEY GROQ_API_KEY AISSTREAM_API_KEY FIRMS_MAP_KEY
+    TOMTOM_API_KEY OPENSKY_CLIENT_ID OPENSKY_CLIENT_SECRET MAPILLARY_ACCESS_TOKEN
+    GOOGLE_MAPS_API_KEY GOOGLE_MAPS_MAP_ID GOOGLE_MAPS_SERVER_API_KEY LL2_API_TOKEN TFL_APP_KEY
+)
+# Fail if any credential from .env / the keys file (or anything shaped like a
+# key) is inside the given files or APKs. Prints names only, never values.
+assert_no_keys_in() {
+    python3 -c '
+import base64, re, sys, zipfile, pathlib
+names = set(sys.argv[1].split())
+secrets = {}
+for f in (".env", sys.argv[2]):
+    p = pathlib.Path(f)
+    if not p.exists(): continue
+    for line in p.read_text(errors="replace").splitlines():
+        if "=" not in line or line.lstrip().startswith("#"): continue
+        k, v = line.split("=", 1)
+        k = k.strip(); k = k[4:] if k.startswith("KEY_") else k
+        k = k[5:] if k.startswith("VITE_") else k
+        v = v.strip().strip("\"").strip("\x27")
+        if v.startswith("b64|"):
+            try: v = base64.b64decode(v[4:]).decode()
+            except Exception: pass
+        if (k in names or k == "MAPILLARY_TOKEN") and len(v) >= 8:
+            secrets[v] = k
+shapes = re.compile(rb"AIza[0-9A-Za-z_\-]{35}|\bgsk_[A-Za-z0-9]{20,}|sk-ant-[A-Za-z0-9_\-]{20,}|MLY\|[0-9]+\|[0-9a-f]{20,}|eyJ[A-Za-z0-9_\-]{10,}\.eyJ[A-Za-z0-9_\-]{20,}\.[A-Za-z0-9_\-]{10,}")
+def blobs(path):
+    path = pathlib.Path(path)
+    if path.suffix == ".apk":
+        with zipfile.ZipFile(path) as z:
+            for i in z.infolist():
+                if i.file_size < 200_000_000: yield f"{path.name}!{i.filename}", z.read(i)
+    elif path.is_dir():
+        for f in path.rglob("*"):
+            if f.is_file() and f.stat().st_size < 200_000_000: yield str(f), f.read_bytes()
+    elif path.is_file():
+        yield str(path), path.read_bytes()
+bad = 0
+for target in sys.argv[3:]:
+    for where, data in blobs(target):
+        found = sorted({k for v, k in secrets.items() if v.encode() in data})
+        # the Cesium library ships its own public default token; your values are still checked there
+        if "/cesium/" not in where.replace("!", "/") and shapes.search(data): found.append("key-shaped string")
+        if found:
+            bad += 1; print(f"  KEY FOUND in {where}: {found}")
+print(f"  checked against {len(secrets)} known key value(s)")
+sys.exit(1 if bad else 0)
+' "${PUBLIC_SECRET_VARS[*]}" "$KEYS_FILE" "$@"
 }
 sync_android() {
     [ -d android ] || die "android/ missing. Run --init first."
@@ -3598,6 +3780,11 @@ do_build() {
     apply_cesium_mobile_optimizations
     do_icon
     build_web
+    if [ "$PUBLIC_BUILD" = "1" ]; then
+        info "Checking the web bundle for API keys ..."
+        assert_no_keys_in "$WEB_DIR" || die "An API key is in $WEB_DIR — public build stopped. Nothing to share."
+        ok "No API keys in the web bundle."
+    fi
     sync_android
     apply_local_properties
 
@@ -3609,6 +3796,20 @@ do_build() {
     info "Post-build verification ..."
     verify_bundle_markers
     ok "Debug APK: $apk ($(du -h "$apk" | cut -f1))"
+
+    if [ "$PUBLIC_BUILD" = "1" ]; then
+        info "Checking the APK for API keys ..."
+        assert_no_keys_in "$apk" || die "An API key is inside the APK — do NOT share it."
+        local version out
+        version="$(grep -m1 -oE 'versionName "[^"]+"' android/app/build.gradle | cut -d'"' -f2)"
+        out="release/gids-eyes-view-${version:-beta}.apk"
+        mkdir -p release
+        cp "$apk" "$out"
+        ( cd release && sha256sum "$(basename "$out")" > "$(basename "$out").sha256" )
+        ok "Shareable keyless APK: $out"
+        ok "Checksum: $out.sha256"
+        warn "Your own keyed build is the one in android/app/build — never share that one."
+    fi
 }
 do_release() {
     command -v node >/dev/null 2>&1 || die "Node.js not found."

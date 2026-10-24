@@ -1,5 +1,30 @@
 # Changelog
 
+## [Gids Eyes View 0.1.0-beta.1] — 2026-10-25 (Android mobile beta)
+
+- Public, keyless APK: `./gids-android.sh --public` builds it with every key
+  variable blanked. It scans the web bundle and the APK for your key values
+  (and key-shaped strings) and stops if any is found. Output:
+  `release/gids-eyes-view-<version>.apk` + `.sha256`.
+- Keys on the phone (`src/lib/deviceKeys.js`): a feature that needs a key
+  (NASA FIRMS fires, TomTom traffic) shows an "API KEY NEEDED" prompt with a
+  link to get a free key; "Not now" is remembered until restart. In the APK the
+  POWER UP dialog saves keys on the device (only the keys the phone app can use;
+  the metered Google Maps key is left out). Saved keys override build-time keys.
+- Interactive setup:
+  - `gids-install.sh` walks a user through USB debugging, finds the phone,
+    checks Android, WebView, RAM and GPU, writes a device report, installs,
+    grants the mic and opens the app.
+  - `gids-android.sh` asks for each missing key with hidden input (`--no-prompt` to skip).
+- Security fix: `gids-android.sh` no longer copies `.env` (with keys) to the
+  committed `.env.example` when the template is missing.
+- Fixes: web voice fell back to "Native voice not available" (wrong saved
+  Gemini session); voice crashed outside a browser; device-aware voice hints
+  and a fixed screen-reader label; tests' self-imports used the old package
+  name; 67 duplicate CSS blocks; the ocean patch step aborted on an
+  already-applied hunk; a false "Cesium guard MISSING" build warning.
+- App version 0.1.0-beta.1 (versionCode 2). Docs: `docs/MOBILE-BETA.md`.
+
 ## [Unreleased]
 
 - Add Ocean view and a pilotable exploration submarine (`src/ocean/`). The

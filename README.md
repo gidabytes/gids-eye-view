@@ -1,3 +1,20 @@
+# 📱 Gids Eyes View — Android mobile edition
+
+**Gids Eyes View** (GIDS) by [Gidabytes](https://github.com/gidabytes) takes the God's Eye View globe to Android phones:
+
+- **Native Android app** (Capacitor), built by one script: `./gids-android.sh --build` (JDK 21, Android SDK). The APK runs without a local server: an embedded proxy calls the public feeds directly.
+- **On-device voice:** the phone mic uses Google speech recognition (say "fly to Cebu"). The desktop browser keeps the Gemini Live voice.
+- **Touch UI:** satellite and rail action buttons, a bottom sheet for layers, and tap-the-mic voice hints.
+- **Ocean view** with a pilotable exploration submarine (`src/ocean`, Cesium World Bathymetry) and **geo intel** search (`src/geo`).
+
+It is an unofficial fork of the community [Free Edition](https://github.com/electronictechshow-netizen/gods-eye-view-free), which is based on [God's Eye View](https://github.com/bilawalsidhu/gods-eye-view) by **Bilawal Sidhu** (MIT). It is not affiliated with or endorsed by either. All credit for the original idea, design and nearly all of the code goes to the original project, so please star it.
+
+> **Keys:** a debug APK built from your `.env` contains your API keys. Install it on your own devices only and never publish it. Build your own APK with your own free keys.
+
+Everything below is the Free Edition's own guide, unchanged.
+
+---
+
 # 🌐 God's Eye View — Free Edition
 
 **A spy-satellite simulator in your browser — where the sources are public and every key is free.**

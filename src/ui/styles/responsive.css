@@ -266,3 +266,1141 @@
     display: none;
   }
 }
+
+@media (min-width: 769px) {
+  .mobile-panel-tab, .mobile-panel-overlay { display: none !important; }
+}
+
+
+@media (min-width: 769px) {
+  .mobile-icon-rail,
+  .mobile-panel-overlay { display: none !important; }
+}
+
+
+@media (min-width: 769px) {
+  .mobile-icon-rail,
+  .mobile-panel-overlay,
+  .mobile-drawer-expand { display: none !important; }
+}
+
+
+@media (min-width: 769px) {
+  .mobile-fab, .mobile-fab-fan, .mobile-panel-overlay { display: none !important; }
+}
+
+
+@media (min-width: 769px) {
+  .mobile-icon-rail,
+  .mobile-panel-overlay,
+  .mobile-drawer-expand { display: none !important; }
+}
+
+
+@media (min-width: 769px) {
+  .mobile-fab, .mobile-fab-fan, .mobile-panel-overlay { display: none !important; }
+}
+
+/* =========================================================================
+   MOBILE FAB + GLASS DRAWERS + CONSTRAINED SELECTS (v16)
+   ========================================================================= */
+@media (max-width: 768px) {
+  #left-panel-stack { display: contents !important; }
+  #left-panel-stack::before,
+  #left-panel-stack::after { content: none !important; display: none !important; }
+
+  .mobile-icon-rail,
+  .mobile-icon-btn,
+  .mobile-icon-position,
+  .mobile-drawer-expand { display: none !important; }
+
+  .mobile-fab {
+    position: fixed !important;
+    width: 52px !important; height: 52px !important;
+    display: flex !important; align-items: center !important; justify-content: center !important;
+    padding: 0 !important; border-radius: 50% !important;
+    background: rgba(20, 45, 80, 0.42) !important;
+    backdrop-filter: blur(18px) saturate(170%) !important;
+    -webkit-backdrop-filter: blur(18px) saturate(170%) !important;
+    color: #e0f0ff !important;
+    border: 1px solid rgba(180, 220, 255, 0.35) !important;
+    font-size: 22px !important; line-height: 1 !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.28) !important;
+    -webkit-tap-highlight-color: transparent !important;
+    touch-action: none !important;
+    user-select: none !important; -webkit-user-select: none !important;
+    z-index: 1200 !important;
+    transition: background 0.22s ease, box-shadow 0.22s ease !important;
+  }
+  .mobile-fab:active {
+    box-shadow: 0 4px 24px rgba(120, 200, 255, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.4) !important;
+  }
+  .mobile-fab.is-open {
+    background: rgba(120, 40, 40, 0.55) !important;
+    border-color: rgba(255, 180, 180, 0.5) !important;
+    color: #ffd0d0 !important;
+  }
+
+  .mobile-fab-fan {
+    position: fixed !important;
+    display: flex !important; flex-direction: column-reverse !important;
+    align-items: center !important; gap: 12px !important;
+    z-index: 1199 !important;
+    pointer-events: none !important; opacity: 0 !important;
+    transition: opacity 0.22s ease !important;
+  }
+  .mobile-fab-fan.is-open { pointer-events: auto !important; opacity: 1 !important; }
+
+  .mobile-fab-item {
+    width: 46px !important; height: 46px !important;
+    flex: 0 0 auto !important;
+    display: flex !important; align-items: center !important; justify-content: center !important;
+    padding: 0 !important; border-radius: 50% !important;
+    background: rgba(16, 32, 56, 0.58) !important;
+    backdrop-filter: blur(18px) saturate(170%) !important;
+    -webkit-backdrop-filter: blur(18px) saturate(170%) !important;
+    color: #c8e4ff !important;
+    border: 1px solid rgba(180, 220, 255, 0.32) !important;
+    font-size: 20px !important; line-height: 1 !important;
+    box-shadow: 0 3px 14px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.22) !important;
+    -webkit-tap-highlight-color: transparent !important;
+    cursor: pointer !important;
+    transition: transform 0.15s ease, background 0.22s ease !important;
+  }
+  .mobile-fab-item:active {
+    transform: scale(0.9) !important;
+    background: rgba(90, 180, 255, 0.65) !important;
+    color: #ffffff !important;
+  }
+
+  .mobile-panel-overlay {
+    position: fixed !important; inset: 0 !important;
+    background: rgba(0, 0, 0, 0.42) !important;
+    backdrop-filter: blur(4px) !important;
+    -webkit-backdrop-filter: blur(4px) !important;
+    opacity: 0 !important; pointer-events: none !important;
+    transition: opacity 0.3s ease !important;
+    z-index: 1060 !important;
+  }
+  .mobile-panel-overlay.is-visible { opacity: 1 !important; pointer-events: auto !important; }
+
+  /* Constrain <select> dropdowns so Android's native picker is not huge */
+  select {
+    max-width: 100% !important;
+    width: 100% !important;
+    font-size: 13px !important;
+    padding: 6px 10px !important;
+    border-radius: 8px !important;
+    background: rgba(15, 25, 45, 0.9) !important;
+    color: #e6f3ff !important;
+    border: 1px solid rgba(140, 200, 255, 0.35) !important;
+    -webkit-appearance: none !important;
+    appearance: none !important;
+    background-image:
+      linear-gradient(45deg, transparent 50%, #9ad8ff 50%),
+      linear-gradient(135deg, #9ad8ff 50%, transparent 50%) !important;
+    background-position:
+      calc(100% - 16px) calc(1em + 2px),
+      calc(100% - 11px) calc(1em + 2px) !important;
+    background-size: 5px 5px, 5px 5px !important;
+    background-repeat: no-repeat !important;
+    padding-right: 30px !important;
+  }
+}
+
+@media (min-width: 769px) {
+  .mobile-fab, .mobile-fab-fan, .mobile-panel-overlay { display: none !important; }
+}
+
+/* =========================================================================
+   MOBILE FAB + GLASS DRAWERS + CONSTRAINED SELECTS (v16)
+   ========================================================================= */
+@media (max-width: 768px) {
+  #left-panel-stack { display: contents !important; }
+  #left-panel-stack::before,
+  #left-panel-stack::after { content: none !important; display: none !important; }
+
+  .mobile-icon-rail,
+  .mobile-icon-btn,
+  .mobile-icon-position,
+  .mobile-drawer-expand { display: none !important; }
+
+  .mobile-fab {
+    position: fixed !important;
+    width: 52px !important; height: 52px !important;
+    display: flex !important; align-items: center !important; justify-content: center !important;
+    padding: 0 !important; border-radius: 50% !important;
+    background: rgba(20, 45, 80, 0.42) !important;
+    backdrop-filter: blur(18px) saturate(170%) !important;
+    -webkit-backdrop-filter: blur(18px) saturate(170%) !important;
+    color: #e0f0ff !important;
+    border: 1px solid rgba(180, 220, 255, 0.35) !important;
+    font-size: 22px !important; line-height: 1 !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.28) !important;
+    -webkit-tap-highlight-color: transparent !important;
+    touch-action: none !important;
+    user-select: none !important; -webkit-user-select: none !important;
+    z-index: 1200 !important;
+    transition: background 0.22s ease, box-shadow 0.22s ease !important;
+  }
+  .mobile-fab:active {
+    box-shadow: 0 4px 24px rgba(120, 200, 255, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.4) !important;
+  }
+  .mobile-fab.is-open {
+    background: rgba(120, 40, 40, 0.55) !important;
+    border-color: rgba(255, 180, 180, 0.5) !important;
+    color: #ffd0d0 !important;
+  }
+
+  .mobile-fab-fan {
+    position: fixed !important;
+    display: flex !important; flex-direction: column-reverse !important;
+    align-items: center !important; gap: 12px !important;
+    z-index: 1199 !important;
+    pointer-events: none !important; opacity: 0 !important;
+    transition: opacity 0.22s ease !important;
+  }
+  .mobile-fab-fan.is-open { pointer-events: auto !important; opacity: 1 !important; }
+
+  .mobile-fab-item {
+    width: 46px !important; height: 46px !important;
+    flex: 0 0 auto !important;
+    display: flex !important; align-items: center !important; justify-content: center !important;
+    padding: 0 !important; border-radius: 50% !important;
+    background: rgba(16, 32, 56, 0.58) !important;
+    backdrop-filter: blur(18px) saturate(170%) !important;
+    -webkit-backdrop-filter: blur(18px) saturate(170%) !important;
+    color: #c8e4ff !important;
+    border: 1px solid rgba(180, 220, 255, 0.32) !important;
+    font-size: 20px !important; line-height: 1 !important;
+    box-shadow: 0 3px 14px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.22) !important;
+    -webkit-tap-highlight-color: transparent !important;
+    cursor: pointer !important;
+    transition: transform 0.15s ease, background 0.22s ease !important;
+  }
+  .mobile-fab-item:active {
+    transform: scale(0.9) !important;
+    background: rgba(90, 180, 255, 0.65) !important;
+    color: #ffffff !important;
+  }
+
+  .mobile-panel-overlay {
+    position: fixed !important; inset: 0 !important;
+    background: rgba(0, 0, 0, 0.42) !important;
+    backdrop-filter: blur(4px) !important;
+    -webkit-backdrop-filter: blur(4px) !important;
+    opacity: 0 !important; pointer-events: none !important;
+    transition: opacity 0.3s ease !important;
+    z-index: 1060 !important;
+  }
+  .mobile-panel-overlay.is-visible { opacity: 1 !important; pointer-events: auto !important; }
+
+  /* Constrain <select> dropdowns so Android's native picker is not huge */
+  select {
+    max-width: 100% !important;
+    width: 100% !important;
+    font-size: 13px !important;
+    padding: 6px 10px !important;
+    border-radius: 8px !important;
+    background: rgba(15, 25, 45, 0.9) !important;
+    color: #e6f3ff !important;
+    border: 1px solid rgba(140, 200, 255, 0.35) !important;
+    -webkit-appearance: none !important;
+    appearance: none !important;
+    background-image:
+      linear-gradient(45deg, transparent 50%, #9ad8ff 50%),
+      linear-gradient(135deg, #9ad8ff 50%, transparent 50%) !important;
+    background-position:
+      calc(100% - 16px) calc(1em + 2px),
+      calc(100% - 11px) calc(1em + 2px) !important;
+    background-size: 5px 5px, 5px 5px !important;
+    background-repeat: no-repeat !important;
+    padding-right: 30px !important;
+  }
+}
+
+@media (min-width: 769px) {
+  .mobile-fab, .mobile-fab-fan, .mobile-panel-overlay { display: none !important; }
+}
+
+/* =========================================================================
+   MOBILE FAB + GLASS DRAWERS + VOICE WIDGET (v17)
+   ========================================================================= */
+@media (max-width: 768px) {
+  #left-panel-stack { display: contents !important; }
+  #left-panel-stack::before,
+  #left-panel-stack::after { content: none !important; display: none !important; }
+  .mobile-icon-rail, .mobile-icon-btn, .mobile-icon-position,
+  .mobile-drawer-expand { display: none !important; }
+
+  .mobile-fab {
+    position: fixed !important;
+    width: 52px !important; height: 52px !important;
+    display: flex !important; align-items: center !important; justify-content: center !important;
+    padding: 0 !important; border-radius: 50% !important;
+    background: rgba(20, 45, 80, 0.42) !important;
+    backdrop-filter: blur(18px) saturate(170%) !important;
+    -webkit-backdrop-filter: blur(18px) saturate(170%) !important;
+    color: #e0f0ff !important;
+    border: 1px solid rgba(180, 220, 255, 0.35) !important;
+    font-size: 22px !important; line-height: 1 !important;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.28) !important;
+    -webkit-tap-highlight-color: transparent !important;
+    touch-action: none !important;
+    user-select: none !important; -webkit-user-select: none !important;
+    z-index: 1200 !important;
+    transition: background 0.22s ease, box-shadow 0.22s ease !important;
+  }
+  .mobile-fab:active {
+    box-shadow: 0 4px 24px rgba(120,200,255,0.5), inset 0 1px 0 rgba(255,255,255,0.4) !important;
+  }
+  .mobile-fab.is-open {
+    background: rgba(120, 40, 40, 0.55) !important;
+    border-color: rgba(255, 180, 180, 0.5) !important;
+    color: #ffd0d0 !important;
+  }
+
+  .mobile-fab-fan {
+    position: fixed !important;
+    display: flex !important; flex-direction: column-reverse !important;
+    align-items: center !important; gap: 12px !important;
+    z-index: 1199 !important;
+    pointer-events: none !important; opacity: 0 !important;
+    transition: opacity 0.22s ease !important;
+  }
+  .mobile-fab-fan.is-open { pointer-events: auto !important; opacity: 1 !important; }
+
+  .mobile-fab-item {
+    width: 46px !important; height: 46px !important;
+    flex: 0 0 auto !important;
+    display: flex !important; align-items: center !important; justify-content: center !important;
+    padding: 0 !important; border-radius: 50% !important;
+    background: rgba(16, 32, 56, 0.58) !important;
+    backdrop-filter: blur(18px) saturate(170%) !important;
+    -webkit-backdrop-filter: blur(18px) saturate(170%) !important;
+    color: #c8e4ff !important;
+    border: 1px solid rgba(180, 220, 255, 0.32) !important;
+    font-size: 20px !important; line-height: 1 !important;
+    box-shadow: 0 3px 14px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.22) !important;
+    -webkit-tap-highlight-color: transparent !important;
+    cursor: pointer !important;
+    transition: transform 0.15s ease, background 0.22s ease !important;
+  }
+  .mobile-fab-item:active {
+    transform: scale(0.9) !important;
+    background: rgba(90, 180, 255, 0.65) !important;
+    color: #ffffff !important;
+  }
+
+  .mobile-panel-overlay {
+    position: fixed !important; inset: 0 !important;
+    background: rgba(0, 0, 0, 0.42) !important;
+    backdrop-filter: blur(4px) !important;
+    -webkit-backdrop-filter: blur(4px) !important;
+    opacity: 0 !important; pointer-events: none !important;
+    transition: opacity 0.3s ease !important;
+    z-index: 1060 !important;
+  }
+  .mobile-panel-overlay.is-visible { opacity: 1 !important; pointer-events: auto !important; }
+
+  select {
+    max-width: 100% !important; width: 100% !important;
+    font-size: 13px !important; padding: 6px 10px !important;
+    border-radius: 8px !important;
+    background: rgba(15, 25, 45, 0.9) !important;
+    color: #e6f3ff !important;
+    border: 1px solid rgba(140, 200, 255, 0.35) !important;
+    -webkit-appearance: none !important; appearance: none !important;
+  }
+}
+
+@media (min-width: 769px) {
+  .mobile-fab, .mobile-fab-fan, .mobile-panel-overlay { display: none !important; }
+}
+
+
+@media (min-width: 769px) {
+  .mobile-fab, .mobile-fab-fan { display: none !important; }
+}
+
+
+@media (min-width: 769px) {
+  #bottom-sheet, #thumb-cluster-left, #thumb-cluster-right,
+  #bottom-action-bar, #street-view-overlay { display: none !important; }
+}
+
+
+@media (min-width: 769px) {
+  #side-aware-drawer, #bottom-action-bar { display: none !important; }
+}
+
+
+@media (min-width: 769px) {
+  #bottom-sheet, #thumb-cluster-left, #thumb-cluster-right,
+  #bottom-action-bar, #street-view-overlay { display: none !important; }
+}
+
+
+@media (min-width: 769px) {
+  #bottom-sheet, #thumb-cluster-left, #thumb-cluster-right,
+  #bottom-action-bar, #street-view-overlay, #floating-drawer { display: none !important; }
+}
+
+
+@media (min-width: 769px) {
+  #bottom-sheet, #thumb-cluster-left, #thumb-cluster-right,
+  #bottom-action-bar, #street-view-overlay { display: none !important; }
+  /* #floating-drawer intentionally kept visible on desktop for debugging */
+}
+
+
+@media (min-width: 769px) {
+  #gev-tactical-core, #street-view-overlay { display: none !important; }
+}
+
+/* =========================================================================
+   v31.1 HOTFIX — ensure radial menu actually displays
+   ========================================================================= */
+@media (max-width: 900px), (pointer: coarse) {
+  #gev-tactical-core.core-closed #gev-radial-menu { display: none !important; }
+  #gev-tactical-core.core-open   #gev-radial-menu { display: flex !important; }
+
+  /* Ensure core node is above everything, including Cesium canvas */
+  #gev-tactical-core {
+    z-index: 2147483600 !important;
+    pointer-events: auto !important;
+  }
+  #gev-core-node {
+    pointer-events: auto !important;
+    touch-action: manipulation !important;
+    -webkit-tap-highlight-color: transparent !important;
+  }
+  #gev-radial-menu {
+    pointer-events: none !important;
+  }
+  #gev-radial-menu > * {
+    pointer-events: auto !important;
+  }
+
+  /* Fallback in case inline styles somehow still lose */
+  #gev-tactical-core.core-open .radial-cat-btn {
+    transform: translateX(0) scale(1) !important;
+    opacity: 1 !important;
+  }
+  #gev-tactical-core.core-closed .radial-cat-btn {
+    transform: translateX(120%) scale(0.8) !important;
+    opacity: 0 !important;
+  }
+}
+
+/* =========================================================================
+   v31.1 HOTFIX — ensure radial menu actually displays
+   ========================================================================= */
+
+/* =========================================================================
+   v31.1 HOTFIX — ensure radial menu actually displays
+   ========================================================================= */
+
+/* =========================================================================
+   v31.1 HOTFIX — ensure radial menu actually displays
+   ========================================================================= */
+
+/* =========================================================================
+   v31.1 HOTFIX — ensure radial menu actually displays
+   ========================================================================= */
+
+/* =========================================================================
+   v31.1 HOTFIX — ensure radial menu actually displays
+   ========================================================================= */
+
+/* =========================================================================
+   v31.1 HOTFIX — ensure radial menu actually displays
+   ========================================================================= */
+
+/* =========================================================================
+   v31.1 HOTFIX — ensure radial menu actually displays
+   ========================================================================= */
+
+/* =========================================================================
+   v31.1 HOTFIX — ensure radial menu actually displays
+   ========================================================================= */
+
+/* =========================================================================
+   v31.1 HOTFIX — ensure radial menu actually displays
+   ========================================================================= */
+
+
+@media (min-width: 769px) {
+  #gev-tactical-core, #street-view-overlay { display: none !important; }
+}
+
+/* =========================================================================
+   v31.1 HOTFIX — ensure radial menu actually displays
+   ========================================================================= */
+@media (max-width: 900px), (pointer: coarse) {
+  #gev-tactical-core.core-closed #gev-radial-menu { display: none !important; }
+  #gev-tactical-core.core-open   #gev-radial-menu { display: flex !important; }
+
+  /* Ensure core node is above everything, including Cesium canvas */
+  #gev-tactical-core {
+    z-index: 2147483600 !important;
+    pointer-events: auto !important;
+  }
+  #gev-core-node {
+    pointer-events: auto !important;
+    touch-action: manipulation !important;
+    -webkit-tap-highlight-color: transparent !important;
+  }
+  #gev-radial-menu {
+    pointer-events: none !important;
+  }
+  #gev-radial-menu > * {
+    pointer-events: auto !important;
+  }
+
+  /* Fallback in case inline styles somehow still lose */
+  #gev-tactical-core.core-open .radial-cat-btn {
+    transform: translateX(0) scale(1) !important;
+    opacity: 1 !important;
+  }
+  #gev-tactical-core.core-closed .radial-cat-btn {
+    transform: translateX(120%) scale(0.8) !important;
+    opacity: 0 !important;
+  }
+}
+
+/* === GEV SIDEBAR PURGE v30.1 === */
+@media (max-width: 768px) {
+  /* Legacy selectors — hidden, not removed, in case JS misses them */
+  #left-sidebar, .left-sidebar, #sidebar-left, .sidebar-left,
+  #side-bar, .side-bar, #side-bar-left, .side-bar-left,
+  #icon-rail, .icon-rail, #icon-sidebar, .icon-sidebar,
+  #tool-rail, .tool-rail, #tool-bar-left, .tool-bar-left,
+  #left-toolbar, .left-toolbar, #vertical-toolbar, .vertical-toolbar,
+  #dock-left, .dock-left, #left-dock, .left-dock,
+  #nav-rail, .nav-rail, #nav-sidebar, .nav-sidebar,
+  #side-aware-drawer, .side-aware-drawer,
+  #left-panel-stack, .left-panel-stack,
+  #mobile-left-rail, .mobile-left-rail,
+  .mobile-icon-rail, .mobile-icon-btn, .mobile-icon-position {
+    display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+    width: 0 !important;
+    min-width: 0 !important;
+    max-width: 0 !important;
+    flex: 0 0 0 !important;
+    position: absolute !important;
+    left: -9999px !important;
+  }
+}
+
+@media (min-width: 769px) {
+  #gev-tactical-core, #street-view-overlay { display: none !important; }
+}
+
+
+@media (min-width: 769px) {
+  #bottom-sheet, #thumb-cluster-right,
+  #bottom-action-bar, #street-view-overlay { display: none !important; }
+}
+
+
+
+
+@media (min-width: 769px) {
+  #sat-root, #bottom-sheet, #thumb-cluster-right,
+  #bottom-action-bar, #street-view-overlay { display: none !important; }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@media (min-width: 769px) {
+  #bottom-sheet, #thumb-cluster-left, #thumb-cluster-right,
+  #bottom-action-bar, #street-view-overlay { display: none !important; }
+}
+
+
+@media (min-width: 769px) {
+  .mobile-fab, .mobile-fab-fan { display: none !important; }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* ===== GEV-SAT-FAB v35 ===== */
+@media (max-width: 768px) {
+  #sat-root {
+    position: fixed !important;
+    z-index: 2147483602 !important;
+    width: 48px; height: 48px;
+    pointer-events: none;
+    touch-action: none;
+  }
+  #sat-root > * { pointer-events: auto; }
+
+  #sat-fab {
+    position: relative; width: 48px; height: 48px; padding: 0;
+    border-radius: 50%;
+    border: 1px solid rgba(140, 220, 255, 0.4);
+    background: radial-gradient(circle at 30% 25%, rgba(150, 230, 255, 0.4) 0%, rgba(6, 18, 34, 0.9) 100%);
+    display: flex; align-items: center; justify-content: center;
+    cursor: grab; color: #dff3ff; outline: none;
+    touch-action: none; -webkit-tap-highlight-color: transparent; user-select: none;
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
+    box-shadow: 0 0 20px rgba(90, 200, 255, 0.4), inset 0 0 14px rgba(140, 220, 255, 0.3);
+    animation: satPulse 4s ease-in-out infinite;
+  }
+  #sat-fab:focus-visible { box-shadow: 0 0 0 3px rgba(140, 220, 255, 0.7); }
+  #sat-fab:active, #sat-fab.is-grabbing { cursor: grabbing; transform: scale(0.92); animation-play-state: paused; }
+  #sat-fab.is-open {
+    transform: rotate(45deg);
+    box-shadow: 0 0 30px rgba(120, 220, 255, 0.8), inset 0 0 20px rgba(180, 240, 255, 0.5);
+  }
+  .sat-svg { position: relative; z-index: 1; pointer-events: none; }
+  .sat-halo {
+    position: absolute; inset: -8px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(120, 210, 255, 0.4) 0%, transparent 60%);
+    pointer-events: none; animation: satHalo 3s ease-in-out infinite;
+  }
+  .sat-ring {
+    position: absolute; inset: 2px; border-radius: 50%;
+    border: 1px dashed rgba(180, 230, 255, 0.4);
+    pointer-events: none; animation: satSpin 15s linear infinite;
+  }
+
+  #sat-drawer {
+    position: absolute; width: 260px; max-width: calc(100vw - 32px);
+    display: flex; flex-direction: column; overflow: hidden;
+    background: rgba(10, 18, 32, 0.75);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    backdrop-filter: blur(24px) saturate(180%);
+    border: 1px solid rgba(140, 220, 255, 0.2);
+    border-radius: 20px;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+    opacity: 0; pointer-events: none !important;
+    transform: scale(0.95);
+    transition: opacity 0.25s ease, transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+    z-index: 2147483603;
+  }
+  .sat-drawer-below { top: 58px;    transform-origin: top center; }
+  .sat-drawer-above { bottom: 58px; transform-origin: bottom center; }
+  .sat-drawer-right { right: 0; }
+  .sat-drawer-left  { left: 0; }
+  .sat-drawer-below.sat-drawer-right { transform-origin: top right; }
+  .sat-drawer-below.sat-drawer-left  { transform-origin: top left; }
+  .sat-drawer-above.sat-drawer-right { transform-origin: bottom right; }
+  .sat-drawer-above.sat-drawer-left  { transform-origin: bottom left; }
+  #sat-drawer.sat-drawer-open { opacity: 1 !important; pointer-events: auto !important; transform: scale(1) !important; }
+
+  .sat-drawer-header {
+    flex: 0 0 auto;
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 14px 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  .sat-drawer-title { color: #8cc8ff; font-size: 12px; letter-spacing: 2px; text-transform: uppercase; }
+  .sat-drawer-close {
+    width: 28px; height: 28px; border-radius: 50%; padding: 0;
+    border: 1px solid rgba(140, 220, 255, 0.25);
+    background: rgba(140, 220, 255, 0.08); color: #dff3ff;
+    font-size: 12px; cursor: pointer; -webkit-tap-highlight-color: transparent;
+  }
+  .sat-drawer-close:active { background: rgba(255, 69, 58, 0.45); }
+
+  .sat-drawer-list {
+    flex: 1 1 auto; overflow-y: auto; overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch; touch-action: pan-y; padding: 4px 0 8px;
+  }
+  .sat-drawer-item {
+    display: flex; align-items: center; gap: 12px; width: 100%;
+    min-height: 44px; padding: 12px 16px;
+    background: transparent; border: none; text-align: left;
+    color: #dff3ff; font: inherit; font-size: 14px;
+    cursor: pointer; -webkit-tap-highlight-color: transparent;
+    transition: background 0.2s;
+  }
+  .sat-drawer-item:hover, .sat-drawer-item:active { background: rgba(90, 200, 255, 0.15); }
+  .sat-item-icon { font-size: 16px; line-height: 1; }
+  .sat-item-label { flex: 1; }
+  .sat-item-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: rgba(140, 220, 255, 0.2); transition: background 0.2s, box-shadow 0.2s;
+  }
+  .sat-drawer-item.is-active .sat-item-dot {
+    background: #5ad2ff; box-shadow: 0 0 8px rgba(90, 210, 255, 0.9);
+  }
+
+  @keyframes satPulse { 0%, 100% { box-shadow: 0 0 20px rgba(90, 200, 255, 0.4); } 50% { box-shadow: 0 0 35px rgba(110, 220, 255, 0.6); } }
+  @keyframes satHalo  { 0%, 100% { opacity: 0.5; transform: scale(0.9); } 50% { opacity: 1; transform: scale(1.1); } }
+  @keyframes satSpin  { to { transform: rotate(360deg); } }
+
+  @media (prefers-reduced-motion: reduce) {
+    #sat-fab, .sat-halo, .sat-ring { animation: none; }
+  }
+}
+@media (min-width: 769px) { #sat-root { display: none !important; } }
+
+/* ===== GEV-RAIL-FAB v41 ===== */
+@media (max-width: 768px) {
+  #rail-root {
+    position: fixed !important; z-index: 2147483647 !important;
+    width: 42px; height: 42px; touch-action: none;
+  }
+  #rail-fab {
+    position: relative; width: 42px; height: 42px; padding: 0; border-radius: 50%;
+    border: 1px solid rgba(140, 220, 255, 0.4);
+    background: radial-gradient(circle at 30% 25%, rgba(150, 230, 255, 0.4) 0%, rgba(6, 18, 34, 0.9) 100%);
+    display: flex; align-items: center; justify-content: center; cursor: grab;
+    touch-action: none; user-select: none; -webkit-tap-highlight-color: transparent; outline: none;
+    box-shadow: 0 0 20px rgba(90, 200, 255, 0.4), inset 0 0 14px rgba(140, 220, 255, 0.3);
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
+    animation: satPulse 4s ease-in-out infinite;
+  }
+  #rail-fab svg { position: relative; z-index: 1; pointer-events: none; transition: transform 0.3s ease; }
+  #rail-fab.is-grabbing, #rail-fab:active { cursor: grabbing; transform: scale(0.92); animation-play-state: paused; }
+  #rail-fab.is-open { box-shadow: 0 0 30px rgba(120, 220, 255, 0.8), inset 0 0 20px rgba(180, 240, 255, 0.5); }
+  #rail-fab.is-open svg { transform: rotate(45deg); }
+  #rail-fab:focus-visible { box-shadow: 0 0 0 3px rgba(140, 220, 255, 0.7); }
+
+  /* ---- orb column anchored to the FAB (no frame, no outline) ---- */
+  #rail-col {
+    position: fixed !important; z-index: 2147483646 !important;
+    left: var(--ax-l, 44px); top: var(--ax-t, auto); bottom: var(--ax-b, 186px);
+    translate: -16px 0; width: 200px; align-items: flex-start !important;
+    max-height: var(--ax-max, 60vh);
+    display: flex; flex-direction: column; align-items: center; gap: 7px; padding: 6px 0;
+    background: none; border: 0; outline: 0; box-shadow: none;
+    overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; touch-action: pan-y;
+    scrollbar-width: none;
+    transform-origin: bottom center; transform: translateY(14px) scale(0.85);
+    opacity: 0; pointer-events: none; visibility: hidden;
+    transition: opacity 0.22s ease, transform 0.3s cubic-bezier(0.22, 1, 0.36, 1), visibility 0s linear 0.3s;
+  }
+  #rail-col::-webkit-scrollbar { display: none; }
+  #rail-col.ax-top { transform-origin: top center; transform: translateY(-14px) scale(0.85); }
+  #rail-col.rc-open {
+    transform: none; opacity: 1; pointer-events: auto; visibility: visible;
+    transition: opacity 0.22s ease, transform 0.3s cubic-bezier(0.22, 1, 0.36, 1), visibility 0s;
+  }
+  #rail-col .rail-orb {
+    position: relative; flex: 0 0 auto; width: 32px; height: 32px; padding: 0; margin: 0;
+    border-radius: 50%; border: 1px solid rgba(140, 220, 255, 0.4); outline: 0;
+    background: radial-gradient(circle at 30% 25%, rgba(150, 230, 255, 0.35) 0%, rgba(6, 18, 34, 0.92) 100%);
+    box-shadow: 0 0 16px rgba(90, 200, 255, 0.35), inset 0 0 12px rgba(140, 220, 255, 0.25);
+    display: flex; align-items: center; justify-content: center;
+    color: #dff3ff; cursor: pointer; -webkit-tap-highlight-color: transparent;
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s ease, box-shadow 0.3s ease;
+  }
+  #rail-col:not(.rc-open) .rail-orb { transform: scale(0.6); opacity: 0; }
+  #rail-col .rail-orb:active { transform: scale(0.9); }
+  #rail-col .rail-orb.is-active {
+    border-color: rgba(140, 230, 255, 0.85);
+    box-shadow: 0 0 26px rgba(110, 220, 255, 0.75), inset 0 0 18px rgba(180, 240, 255, 0.45);
+  }
+  /* text label beside each orb */
+  #rail-col .rail-orb { overflow: visible; }
+  .rail-orb-label {
+    position: absolute; left: 40px; top: 50%; translate: 0 -50%;
+    white-space: nowrap; pointer-events: none;
+    padding: 3px 8px; border-radius: 999px;
+    background: rgba(10, 18, 32, 0.78); border: 1px solid rgba(140, 220, 255, 0.22);
+    -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+    color: #dff3ff; font-size: 9.5px; letter-spacing: 1.2px; text-transform: uppercase;
+  }
+  .rail-orb-label:empty { display: none; }
+  #rail-col.ax-right { translate: calc(-100% + 16px) 0; align-items: flex-end !important; }
+  #rail-col.ax-right .rail-orb-label { left: auto; right: 40px; }
+  #rail-sheet .rs-back {
+    width: 32px; height: 32px; margin-right: 8px; border-radius: 50%; padding: 0;
+    border: 1px solid rgba(140, 220, 255, 0.25); background: rgba(140, 220, 255, 0.08);
+    color: #dff3ff; font-size: 20px; line-height: 1; cursor: pointer;
+  }
+  #rail-sheet .rs-back[hidden] { display: none; }
+  #rail-sheet .rs-head { justify-content: flex-start !important; }
+  #rail-sheet .rs-title { flex: 1; }
+  .rail-docked.rd-hidden { display: none !important; }
+  #rail-col .rail-ocean-orb .rail-orb-ico { font-size: 15px; }
+
+  /* submarine touch pad (W/A/S/D, RISE/DIVE, FAST, CAM) */
+  #gev-sub-pad {
+    position: fixed; left: 0; right: 0; bottom: calc(190px + env(safe-area-inset-bottom, 0px));
+    display: none; justify-content: space-between; align-items: flex-end;
+    padding: 0 14px; pointer-events: none; z-index: 2147483645;
+    -webkit-user-select: none; user-select: none; touch-action: none;
+  }
+  #gev-sub-pad.sp-on { display: flex; }
+  #gev-sub-pad > div { pointer-events: auto; }
+  #gev-sub-pad button {
+    border-radius: 50%; border: 1px solid rgba(140, 220, 255, 0.45); padding: 0;
+    background: radial-gradient(circle at 30% 25%, rgba(150, 230, 255, 0.3), rgba(6, 18, 34, 0.88));
+    color: #dff3ff; font: 600 11px/1 Inter, system-ui, sans-serif; letter-spacing: 1px;
+    box-shadow: 0 0 12px rgba(90, 200, 255, 0.3); touch-action: none; -webkit-tap-highlight-color: transparent;
+  }
+  #gev-sub-pad button.on { background: rgba(90, 210, 255, 0.55); box-shadow: 0 0 20px rgba(110, 220, 255, 0.8); }
+  #gev-sub-pad .sp-dpad { display: grid; grid-template: repeat(3, 44px) / repeat(3, 44px); gap: 4px; }
+  #gev-sub-pad .sp-dpad button { width: 44px; height: 44px; font-size: 14px; }
+  #gev-sub-pad .sp-dpad [data-k="W"] { grid-area: 1 / 2; }
+  #gev-sub-pad .sp-dpad [data-k="A"] { grid-area: 2 / 1; }
+  #gev-sub-pad .sp-dpad [data-k="S"] { grid-area: 3 / 2; }
+  #gev-sub-pad .sp-dpad [data-k="D"] { grid-area: 2 / 3; }
+  #gev-sub-pad .sp-side { display: grid; grid-template-columns: repeat(2, 48px); gap: 6px; }
+  #gev-sub-pad .sp-side button { width: 48px; height: 48px; border-radius: 14px; }
+  #gev-sub-pad [data-close] { grid-column: 2; width: 30px !important; height: 30px !important; border-radius: 50% !important; justify-self: end; }
+  .rail-orb-ico { position: relative; z-index: 1; display: inline-flex; align-items: center; justify-content: center;
+                  width: 15px; height: 15px; font-size: 12px; line-height: 1; color: #dff3ff; pointer-events: none; }
+  .rail-orb-ico > svg, .rail-orb-ico > img, .rail-orb-ico > * { width: 15px; height: 15px; max-width: 15px; max-height: 15px; font-size: 15px; }
+  .rail-orb-halo {
+    position: absolute; inset: -8px; border-radius: 50%; pointer-events: none; z-index: 0;
+    background: radial-gradient(circle, rgba(120, 210, 255, 0.3) 0%, transparent 62%);
+    animation: satHalo 3s ease-in-out infinite;
+  }
+  .rail-orb-tag-unused {
+    position: absolute; bottom: -2px; left: 50%; translate: -50% 0;
+    font-size: 7px; letter-spacing: 1px; color: #8cc8ff; pointer-events: none;
+  }
+  .rail-side-orb { border-color: rgba(140, 220, 255, 0.55) !important; }
+
+  /* app modal whose card got docked: make it invisible + click-through */
+  .rail-overlay-tamed {
+    background: transparent !important;
+    -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
+    opacity: 0 !important; pointer-events: none !important;
+  }
+
+  /* ---- glass sheet anchored to the orb ---- */
+  #rail-sheet {
+    position: fixed !important; z-index: 2147483647 !important;
+    left: var(--ax-l, 16px); right: var(--ax-r, auto);
+    top: var(--ax-t, auto); bottom: var(--ax-b, 186px);
+    width: calc(100vw - 32px); max-width: 440px;
+    max-height: var(--ax-max, 70vh);
+    display: flex; flex-direction: column; overflow: hidden;
+    background: rgba(10, 18, 32, 0.82);
+    -webkit-backdrop-filter: blur(24px) saturate(180%); backdrop-filter: blur(24px) saturate(180%);
+    border: 1px solid rgba(140, 220, 255, 0.2); border-radius: 20px;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5), 0 0 24px rgba(90, 200, 255, 0.12);
+    transform-origin: bottom left; transform: scale(0.95); opacity: 0; pointer-events: none;
+    transition: opacity 0.25s ease, transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  #rail-sheet.ax-top   { transform-origin: top left; }
+  #rail-sheet.ax-right { transform-origin: bottom right; }
+  #rail-sheet.ax-top.ax-right { transform-origin: top right; }
+  #rail-sheet.rs-open  { opacity: 1; pointer-events: auto; transform: scale(1); }
+  #rail-sheet .rs-head {
+    flex: 0 0 auto; display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  #rail-sheet .rs-title { color: #8cc8ff; font-size: 13px; letter-spacing: 3px; text-transform: uppercase; }
+  #rail-sheet .rs-close {
+    width: 32px; height: 32px; border-radius: 50%; padding: 0;
+    border: 1px solid rgba(140, 220, 255, 0.25); background: rgba(140, 220, 255, 0.08);
+    color: #dff3ff; font-size: 13px; cursor: pointer; -webkit-tap-highlight-color: transparent;
+  }
+  #rail-sheet .rs-head { position: relative; z-index: 2; background: rgba(10, 18, 32, 0.92); padding: 10px 14px !important; }
+  #rail-sheet .rs-title { font-size: 12px !important; letter-spacing: 2.5px !important; }
+  #rail-sheet .rs-close, #rail-sheet .rs-back { width: 30px !important; height: 30px !important; }
+  /* full-screen sheet on phones: more room, orb stays tappable above it */
+  #rail-sheet.rs-full {
+    left: 10px !important; right: 10px !important; width: auto !important; max-width: none !important;
+    top: calc(10px + env(safe-area-inset-top, 0px)) !important;
+    bottom: calc(10px + env(safe-area-inset-bottom, 0px)) !important;
+    max-height: none !important; z-index: 2147483646 !important;
+  }
+  #rail-sheet.rs-full .rs-body { padding: 8px 10px 72px !important; touch-action: pan-y !important; }
+  /* smaller type inside docked panels: zoom scales text AND spacing together */
+  #rail-sheet .rs-body > .rail-docked { zoom: 0.86; }
+  #rail-sheet .rs-body .rail-docked :is(button, select, input) { min-height: 30px; }
+
+  /* God's Eye View panels docked in the sheet: undo the desktop/rail sizing
+     (--left-panel-allocated-height, inner scrollers, sticky header) so every
+     option — from the first (e.g. Flights) to the last — is reachable */
+  #rail-sheet .rail-docked:is(#data-panel, #cctv-panel, #scene-panel, #pp-toggles,
+      #global-context-panel, #radio-panel, #weather-panel, #recent-imagery-panel, #gev-geo-panel) {
+    --left-panel-allocated-height: auto;
+    flex: none !important; order: 0 !important;
+  }
+  #rail-sheet .rail-docked :is(.data-panel-inner, .cctv-panel-inner, .scene-panel-inner,
+      .global-context-panel-inner, .radio-panel-inner, .weather-panel-inner,
+      .recent-imagery-panel-inner, .cyber-panel-body, .pp-panel-body,
+      .data-toggle-list, [data-rail-scroller]) {
+    height: auto !important; max-height: none !important; min-height: 0 !important;
+    overflow: visible !important; padding-right: 0 !important;
+    scrollbar-gutter: auto !important;
+  }
+  #rail-sheet .rail-docked .panel-glow { display: none !important; }
+  #rail-sheet #gev-geo-panel.rail-docked .gg-inner { min-height: 0 !important; }
+  #rail-sheet #gev-geo-panel.rail-docked .gg-tabs { flex-wrap: wrap; }
+  #gev-geo-toggle { display: none !important; }   /* phones use the Geo orb */
+  #rail-sheet .rail-docked .panel-header { position: static !important; }
+  /* the sheet shows the title + close; keep the rest of the header (e.g. radio dock) */
+  #rail-sheet .rail-docked > :is(div, section) > .panel-header > :is(.panel-title, .panel-divider, .panel-collapse-btn),
+  #rail-sheet .rail-docked .pp-header-row { display: none !important; }
+  #rail-sheet .rail-docked .panel-header:not(:has(> :not(.panel-title):not(.panel-divider):not(.panel-collapse-btn))) { display: none !important; }
+  #rail-sheet .rail-docked .cctv-frame-wrap img,
+  #rail-sheet .rail-docked .cctv-frame-wrap canvas { width: 100% !important; height: auto !important; }
+
+  /* root cause in the app on phones: #left-panel-stack is pinned by its
+     bottom (calc(50vh + 8px)) with no top bound, so tall panels grow off the
+     top of the screen. Bound it and let it scroll. */
+  /* MOVEMENT group (Satellites, Live Flights, ...) pinned at the top of the
+     layer list so it is never out of reach */
+  #rail-sheet .rail-docked .data-layer-group-heading:first-child,
+  #data-toggles > .data-layer-group-heading:first-child { margin-top: 0 !important; padding-top: 4px !important; border-top: 0 !important; }
+  #data-panel:not(.collapsed) .data-toggle-list { scroll-padding-top: 0; }
+  #left-panel-stack {
+    top: max(12px, env(safe-area-inset-top, 0px)) !important;
+    max-height: calc(100vh - 24px) !important;
+    overflow-y: auto !important; overscroll-behavior: contain;
+  }
+  #rail-sheet .rs-body {
+    flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden;
+    overscroll-behavior: contain; -webkit-overflow-scrolling: touch; touch-action: pan-y;
+    padding: 12px 12px calc(16px + env(safe-area-inset-bottom, 0px));
+    scroll-padding-top: 8px;
+  }
+
+  /* docked panel: flatten its own frame + kill the rail-clearance offset */
+  .rail-docked {
+    position: static !important; inset: auto !important; transform: none !important; translate: none !important;
+    width: 100% !important; max-width: 100% !important; min-width: 0 !important;
+    height: auto !important; max-height: none !important;
+    margin: 0 !important; padding: 0 !important;
+    border: 0 !important; outline: 0 !important; border-radius: 0 !important;
+    box-shadow: none !important; background: transparent !important;
+    -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
+    display: block !important; visibility: visible !important; opacity: 1 !important;
+    pointer-events: auto !important; overflow: visible !important; z-index: auto !important;
+  }
+  .rail-docked > * {
+    margin-left: 0 !important; left: auto !important;
+    max-width: 100% !important; box-sizing: border-box !important;
+  }
+  /* inner wrappers that carried a second outline */
+  .rail-docked > div, .rail-docked > section {
+    border-color: transparent !important; box-shadow: none !important;
+    padding-left: 0 !important; padding-right: 0 !important;
+  }
+  .rail-docked * { max-width: 100%; box-sizing: border-box; }
+  /* rows: let text shrink/wrap so toggles + OFF buttons stay on screen */
+  .rail-docked :is(div, li, label, section, header) { min-width: 0; }
+  .rail-docked :is(span, p, small, strong, em, h1, h2, h3, h4, h5, h6, div) { overflow-wrap: anywhere; }
+  .rail-docked :is(button, input, select, [role="switch"], [role="button"]) { flex-shrink: 0; }
+  .rail-docked [style*="flex-wrap: nowrap"] { flex-wrap: wrap !important; }
+  .rail-docked :is(ul, ol) { padding-left: 0 !important; margin: 0 !important; }
+  .rail-docked > :first-child { margin-top: 0 !important; padding-top: 0 !important; }
+  /* sticky headers inside the app panel would float over our sheet header */
+  .rail-docked [style*="sticky"], .rail-docked .sticky { position: static !important; }
+
+  @media (prefers-reduced-motion: reduce) { #rail-fab, .rail-orb-halo { animation: none; } }
+}
+@media (min-width: 769px) { #rail-root, #rail-col, #rail-sheet { display: none !important; } .rail-orb-halo { display: none; } }

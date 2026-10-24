@@ -84,6 +84,9 @@ You never need any other key. (If you happen to already have a Google Maps Platf
 
 ---
 
+## 🌊 Ocean view & exploration submarine
+Turn on **🌊 Ocean** (right-edge dock) to see the seafloor, then **🛥 Sub** to pilot an exploration submarine anywhere across the globe: W/S/A/D, Q/E to rise/dive, Shift for explore speed, X for camera — or say *"dive to 2000 meters"*, *"take the sub to Challenger Deep"*. It's a simulation over public bathymetry. Optional offline sonar/bathymetry tools: `scripts/install-ocean-tools.sh`. Details: [docs/OCEAN.md](docs/OCEAN.md).
+
 ## Troubleshooting
 
 | Symptom | Fix |

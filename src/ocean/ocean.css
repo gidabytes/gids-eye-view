@@ -1,0 +1,129 @@
+/* Ocean view + exploration submarine (src/ocean) */
+.gev-ocean-dock {
+  position: fixed;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 9990;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font:
+    12px/1.2 ui-monospace,
+    'JetBrains Mono',
+    monospace;
+}
+.gev-ocean-dock button,
+.gev-ocean-dock select,
+.gev-subhud button {
+  background: rgba(10, 18, 32, 0.85);
+  color: #bfefff;
+  border: 1px solid rgba(0, 255, 255, 0.3);
+  border-radius: 8px;
+  padding: 7px 9px;
+  font: inherit;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.gev-ocean-dock button:hover,
+.gev-subhud button:hover {
+  border-color: #3ee6ff;
+}
+.gev-ocean-dock button.on,
+.gev-subhud button.on {
+  background: rgba(62, 230, 255, 0.22);
+  border-color: #3ee6ff;
+  color: #fff;
+}
+.gev-ocean-dock select {
+  max-width: 130px;
+}
+.gev-underwater {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.4s;
+  z-index: 1;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(0, 70, 110, 0.35) 0%,
+    rgba(0, 20, 40, 0.9) 75%,
+    #000 100%
+  );
+  mix-blend-mode: multiply;
+}
+.gev-subhud {
+  position: fixed;
+  left: 50%;
+  bottom: 70px;
+  transform: translateX(-50%);
+  z-index: 9990;
+  width: min(560px, calc(100% - 32px));
+  background: rgba(10, 18, 32, 0.88);
+  border: 1px solid rgba(0, 255, 255, 0.3);
+  border-radius: 14px;
+  padding: 10px;
+  color: #e6f3ff;
+  font:
+    12px/1.3 ui-monospace,
+    'JetBrains Mono',
+    monospace;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+.gev-subhud[hidden] {
+  display: none;
+}
+.gev-subhud-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px 12px;
+}
+.gev-subhud-grid small {
+  display: block;
+  opacity: 0.6;
+  letter-spacing: 0.08em;
+}
+.gev-subhud-grid b {
+  color: #3ee6ff;
+  font-size: 14px;
+}
+.gev-subhud-alert {
+  margin-top: 6px;
+  color: #ffb02e;
+}
+.gev-subhud-pad {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  margin-top: 8px;
+  touch-action: none;
+}
+.gev-subhud-pad button {
+  padding: 9px 4px;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.gev-subhud-keys {
+  display: block;
+  margin-top: 6px;
+  opacity: 0.6;
+}
+@media (max-width: 600px) {
+  .gev-ocean-dock {
+    top: auto;
+    bottom: 180px;
+    transform: none;
+  }
+  .gev-subhud {
+    bottom: 16px;
+  }
+  .gev-subhud-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .gev-subhud-keys {
+    display: none;
+  }
+}

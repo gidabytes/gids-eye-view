@@ -1,0 +1,235 @@
+From 7c4298188cbcd4770503c634b6cd0650fed8eaa6 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 17 Oct 2026 20:56:23 +0800
+Subject: [PATCH] Guard against rendering into a zero-size drawing buffer
+
+Cesium decides it can render from clientSize x pixelRatio before truncation;
+with resolutionScale < 1 a 1 px canvas yields a 0 px buffer, GlobeDepth throws
+'Expected width to be greater than 0' and the render loop stops.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_0162vZXfCaW7TsKQvB9cERLT
+---
+ scripts/package-boundaries.json |  7 ++-
+ src/app/renderGuard.js          | 79 +++++++++++++++++++++++++++++++++
+ src/app/renderGuard.test.mjs    | 77 ++++++++++++++++++++++++++++++++
+ src/app/viewer.js               |  2 +
+ 4 files changed, 164 insertions(+), 1 deletion(-)
+ create mode 100644 src/app/renderGuard.js
+ create mode 100644 src/app/renderGuard.test.mjs
+
+diff --git a/scripts/package-boundaries.json b/scripts/package-boundaries.json
+index 7a43df3..67dfba0 100644
+--- a/scripts/package-boundaries.json
++++ b/scripts/package-boundaries.json
+@@ -22,7 +22,11 @@
+   },
+   "viewer": {
+     "exports": ["./application/viewer"],
+-    "modules": ["src/app/viewer.js", "src/app/atmosphereCompat.js"],
++    "modules": [
++      "src/app/viewer.js",
++      "src/app/atmosphereCompat.js",
++      "src/app/renderGuard.js"
++    ],
+     "external": ["cesium"]
+   },
+   "vite-build": {
+@@ -1360,6 +1364,7 @@
+       "src/app/tools.js",
+       "src/app/viewer.js",
+       "src/app/atmosphereCompat.js",
++      "src/app/renderGuard.js",
+       "src/bloom.js",
+       "src/camera.js",
+       "src/cameraGroundGuard.js",
+diff --git a/src/app/renderGuard.js b/src/app/renderGuard.js
+new file mode 100644
+index 0000000..f88ffb1
+--- /dev/null
++++ b/src/app/renderGuard.js
+@@ -0,0 +1,79 @@
++/**
++ * Zero-size render guard.
++ *
++ * Cesium sizes the drawing buffer as clientSize × pixelRatio (pixelRatio
++ * includes viewer.resolutionScale) and decides it "can render" from that
++ * UNROUNDED product. With the app's reduced resolution scale (e.g. 0.6), a
++ * canvas that is momentarily 1 px wide or tall (window minimised or snapped
++ * to a sliver, devtools docked over it, a panel layout pass) gives 0.6 → the
++ * browser truncates the buffer to 0 px, yet Cesium still renders. GlobeDepth
++ * then allocates a 0-wide texture and throws
++ *   "DeveloperError: Expected width to be greater than 0"
++ * and the default render loop stops permanently ("Rendering has stopped").
++ *
++ * The guard (1) skips frames while the drawing buffer is empty and
++ * (2) restarts the render loop if such an error already happened, once the
++ * canvas has a real size again.
++ */
++export function installZeroSizeRenderGuard(
++  viewer,
++  { setTimeoutImpl = setTimeout, doc = globalThis.document } = {},
++) {
++  const scene = viewer?.scene;
++  const widget = viewer?.cesiumWidget;
++  if (!scene || typeof scene.render !== 'function' || scene.__gevZeroSizeGuard)
++    return false;
++  scene.__gevZeroSizeGuard = true;
++
++  const canvas = () => scene.canvas || widget?.canvas;
++  const empty = () => {
++    const c = canvas();
++    const gl = scene.context;
++    return (
++      !c ||
++      !(c.width >= 1) ||
++      !(c.height >= 1) ||
++      (gl && (!(gl.drawingBufferWidth >= 1) || !(gl.drawingBufferHeight >= 1)))
++    );
++  };
++
++  let skipped = 0;
++  const render = scene.render.bind(scene);
++  scene.render = function guardedRender(time) {
++    if (empty()) {
++      skipped++;
++      return undefined; // nothing visible to draw; try again on the next frame
++    }
++    return render(time);
++  };
++
++  let recovering = false;
++  scene.renderError?.addEventListener?.((_scene, error) => {
++    const msg = String(error?.message || error || '');
++    if (!/greater than 0|drawingBuffer|framebuffer/i.test(msg) || recovering)
++      return;
++    recovering = true;
++    const retry = () => {
++      if (viewer.isDestroyed?.()) return;
++      if (empty()) {
++        try {
++          viewer.resize?.();
++        } catch {
++          /* size still collapsed */
++        }
++        if (empty()) return setTimeoutImpl(retry, 250);
++      }
++      viewer.useDefaultRenderLoop = true;
++      doc
++        ?.querySelectorAll?.('.cesium-widget-errorPanel')
++        .forEach((el) => el.remove());
++      recovering = false;
++      scene.requestRender?.();
++      console.info('[GEV] render loop restarted after a zero-size frame');
++    };
++    setTimeoutImpl(retry, 250);
++  });
++
++  viewer.__gevRenderGuardStats = () => ({ skipped });
++  return true;
++}
+diff --git a/src/app/renderGuard.test.mjs b/src/app/renderGuard.test.mjs
+new file mode 100644
+index 0000000..8c96a07
+--- /dev/null
++++ b/src/app/renderGuard.test.mjs
+@@ -0,0 +1,77 @@
++import test from 'node:test';
++import assert from 'node:assert/strict';
++import { installZeroSizeRenderGuard } from './renderGuard.js';
++
++function fakeViewer({ width = 819, height = 460, dbw = width, dbh = height } = {}) {
++  const listeners = [];
++  const scene = {
++    canvas: { width, height },
++    context: { drawingBufferWidth: dbw, drawingBufferHeight: dbh },
++    frames: 0,
++    render() {
++      if (this.context.drawingBufferWidth < 1) throw new Error('Expected width to be greater than 0, actual value was 0');
++      this.frames++;
++    },
++    renderError: { addEventListener: (f) => listeners.push(f) },
++    requestRender() {
++      this.requested = (this.requested || 0) + 1;
++    },
++  };
++  const viewer = { scene, useDefaultRenderLoop: true, resized: 0, resize() { this.resized++; }, isDestroyed: () => false };
++  return { viewer, scene, fire: (e) => listeners.forEach((f) => f(scene, e)) };
++}
++
++test('frames into a 0-px drawing buffer are skipped instead of throwing', () => {
++  const { viewer, scene } = fakeViewer();
++  assert.equal(installZeroSizeRenderGuard(viewer, { doc: null }), true);
++  scene.render(0);
++  assert.equal(scene.frames, 1);
++  scene.canvas.width = 0; // 1 px × 0.6 resolution scale, truncated
++  scene.context.drawingBufferWidth = 0;
++  assert.doesNotThrow(() => scene.render(1));
++  assert.equal(scene.frames, 1);
++  assert.equal(viewer.__gevRenderGuardStats().skipped, 1);
++  scene.canvas.width = 819;
++  scene.context.drawingBufferWidth = 819;
++  scene.render(2);
++  assert.equal(scene.frames, 2);
++});
++
++test('a buffer that is non-zero on the canvas but zero in WebGL is also skipped', () => {
++  const { viewer, scene } = fakeViewer({ dbh: 0 });
++  installZeroSizeRenderGuard(viewer, { doc: null });
++  scene.render(0);
++  assert.equal(scene.frames, 0);
++});
++
++test('after a zero-size render error the loop restarts once the canvas has a size', () => {
++  const { viewer, scene, fire } = fakeViewer({ width: 0, dbw: 0 });
++  const timers = [];
++  installZeroSizeRenderGuard(viewer, { doc: null, setTimeoutImpl: (f) => timers.push(f) });
++  viewer.useDefaultRenderLoop = false; // what Cesium does when a frame throws
++  fire(new Error('Expected width to be greater than 0, actual value was 0'));
++  timers.shift()(); // still collapsed → resize attempted, retry scheduled
++  assert.equal(viewer.useDefaultRenderLoop, false);
++  assert.equal(viewer.resized, 1);
++  assert.equal(timers.length, 1);
++  scene.canvas.width = 819;
++  scene.context.drawingBufferWidth = 819;
++  timers.shift()();
++  assert.equal(viewer.useDefaultRenderLoop, true);
++  assert.equal(scene.requested, 1);
++});
++
++test('unrelated render errors are left to the app', () => {
++  const { viewer, fire } = fakeViewer();
++  const timers = [];
++  installZeroSizeRenderGuard(viewer, { doc: null, setTimeoutImpl: (f) => timers.push(f) });
++  fire(new Error('Shader failed to compile'));
++  assert.equal(timers.length, 0);
++});
++
++test('installing twice is a no-op and bad input is ignored', () => {
++  const { viewer } = fakeViewer();
++  assert.equal(installZeroSizeRenderGuard(viewer, { doc: null }), true);
++  assert.equal(installZeroSizeRenderGuard(viewer, { doc: null }), false);
++  assert.equal(installZeroSizeRenderGuard(null), false);
++});
+diff --git a/src/app/viewer.js b/src/app/viewer.js
+index ace4eb2..2ce9b2c 100644
+--- a/src/app/viewer.js
++++ b/src/app/viewer.js
+@@ -1,5 +1,6 @@
+ import * as Cesium from 'cesium';
+ import { applyModelAtmosphereWorkaround } from './atmosphereCompat.js';
++import { installZeroSizeRenderGuard } from './renderGuard.js'; // GEV-GUARD
+ 
+ const PINCH_ZOOM_MULTIPLIER = 8;
+ const MAX_PINCH_PIXEL_DELTA = 120;
+@@ -123,6 +124,7 @@ export function createApplicationViewer({ container, creditContainer }) {
+     msaaSamples: 4,
+     contextOptions: { webgl: { preserveDrawingBuffer: true } },
+   });
++  installZeroSizeRenderGuard(viewer); // GEV-GUARD: no frames into a 0-px buffer
+   globalThis.__gevViewer = viewer; // GEV-GEO: overlays reuse this viewer
+   try {
+     viewer.targetFrameRate = 60;
+-- 
+2.43.0
+

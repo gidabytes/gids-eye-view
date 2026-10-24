@@ -1,5 +1,7 @@
+import { installCesiumGuard } from '../lib/cesiumGuard.js';
 import * as Cesium from 'cesium';
 import { applyModelAtmosphereWorkaround } from './atmosphereCompat.js';
+import { installZeroSizeRenderGuard } from './renderGuard.js'; // GEV-GUARD
 
 const PINCH_ZOOM_MULTIPLIER = 8;
 const MAX_PINCH_PIXEL_DELTA = 120;
@@ -123,6 +125,8 @@ export function createApplicationViewer({ container, creditContainer }) {
     msaaSamples: 4,
     contextOptions: { webgl: { preserveDrawingBuffer: true } },
   });
+  installZeroSizeRenderGuard(viewer); // GEV-GUARD: no frames into a 0-px buffer
+try { installCesiumGuard(viewer); } catch (e) { console.warn('cesiumGuard', e); }
   try {
     viewer.targetFrameRate = 60;
     // Before any tile builds a draw command: Cesium's per-vertex model
@@ -134,6 +138,13 @@ export function createApplicationViewer({ container, creditContainer }) {
     viewer.scene.skyAtmosphere.atmosphereLightIntensity = 18;
     viewer.scene.skyAtmosphere.saturationShift = -0.12;
     viewer.scene.skyAtmosphere.brightnessShift = -0.08;
+    // Publish for add-on modules (src/ocean) and the exploration toggles in
+    // main.js, which look up window.viewer / window.Cesium.
+    if (typeof window !== 'undefined') {
+      window.__gevViewer = viewer;
+      window.viewer ??= viewer;
+      window.Cesium ??= Cesium;
+    }
     return viewer;
   } catch (error) {
     viewer.destroy();

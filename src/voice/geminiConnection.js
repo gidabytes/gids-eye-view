@@ -4,6 +4,9 @@ import {
   createGeminiOutbound,
 } from './geminiProtocol.js';
 import { createAudioPlayer, startAudioCapture } from './geminiAudio.js';
+import { SystemVoiceAdapter, isSystemVoiceAvailable } from './systemVoice.js';
+import { NativeVoiceAdapter, isNativeVoiceAvailable } from './nativeVoice.js';
+import { pushToTalkStatusHint } from './realtimeInputPolicy.js';
 
 /**
  * Outbound events held back until Gemini reports `setupComplete`.
@@ -54,6 +57,10 @@ export class GeminiRealtimeConnection extends RealtimeConnection {
     this.micLive = false;
     this.ready = false;
     this.held = [];
+    this.resumptionToken = null;
+    this.reconnectAttempts = 0;
+    this.maxReconnects = 5;
+    this.lastMintOptions = null;
 
     // The controller supplies setMicrophoneEnabled as an own property, which
     // would shadow a subclass method. Wrap it instead: muting the track is not
@@ -196,6 +203,7 @@ export class GeminiRealtimeConnection extends RealtimeConnection {
     let socket = null;
     try {
       const minted = await this.requestGeminiSession(signal, { pushToTalk });
+    this.lastMintOptions = { pushToTalk };
       if (this.abandonStart(epoch, { localStream })) return;
 
       // With automatic detection disabled server-side, the client owns the
@@ -230,7 +238,13 @@ export class GeminiRealtimeConnection extends RealtimeConnection {
         if (!owns()) return;
         // The setup frame is composed server-side; forwarding it verbatim
         // keeps instructions and tool declarations in one place.
-        socket.send(JSON.stringify({ setup: minted.setup }));
+        this.reconnectAttempts = 0;
+        const setupFrame = { ...minted.setup };
+        if (this.resumptionToken) {
+          setupFrame.sessionResumption = { handle: this.resumptionToken };
+          this.debugLog('gemini.resumption.attached', {});
+        }
+        socket.send(JSON.stringify({ setup: setupFrame }));
         // The first mic state was decided while this socket was still
         // connecting, so its turn marker is flushed here.
         this.syncActivityMarker();
@@ -283,9 +297,7 @@ export class GeminiRealtimeConnection extends RealtimeConnection {
       this.setStatus(
         'listening',
         this.input.pushToTalkMode
-          ? this.input.pushToTalkKeyHeld
-            ? 'Release Space to send'
-            : 'Hold Space to talk'
+          ? pushToTalkStatusHint(this.input.pushToTalkKeyHeld)
           : 'Ask or command',
       );
       this.debugLog('gemini.session.open', { model: minted.model });
@@ -338,6 +350,19 @@ export class GeminiRealtimeConnection extends RealtimeConnection {
   /** Translate an inbound frame into GEV events and queued audio. */
   handleGeminiMessage(raw) {
     const deliver = (text) => {
+      try {
+        const parsed = JSON.parse(text);
+        if (parsed.goAway) {
+          this.debugLog('gemini.goaway', { timeLeft: parsed.goAway.timeLeft });
+          this.scheduleReconnect();
+          return;
+        }
+        if (parsed.sessionResumptionUpdate?.newHandle) {
+          this.resumptionToken = parsed.sessionResumptionUpdate.newHandle;
+          this.debugLog('gemini.resumption.updated', {});
+        }
+      } catch { /* not JSON */ }
+
       const { events, audio, toolCalls, cancelledCalls } =
         this.translator.translate(text);
       if (events.some((event) => event.type === 'session.created'))
@@ -383,11 +408,64 @@ export class GeminiRealtimeConnection extends RealtimeConnection {
     return this.forwardToGemini(message) !== false;
   }
 
+  /**
+   * Reconnect after a GoAway or unexpected socket close. Uses the last
+   * resumption handle if one was received, retries with exponential backoff.
+   */
+  scheduleReconnect() {
+    if (this._tearingDown) return;
+    if (this.reconnectAttempts >= this.maxReconnects) {
+      this.debugLog('gemini.reconnect.giveup', { attempts: this.reconnectAttempts });
+      return;
+    }
+    this.reconnectAttempts += 1;
+    const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts), 30000);
+    this.debugLog('gemini.reconnect.scheduled', {
+      attempt: this.reconnectAttempts,
+      delayMs: delay,
+      hasToken: Boolean(this.resumptionToken),
+    });
+    setTimeout(() => {
+      if (this._tearingDown) return;
+      const opts = this.lastMintOptions || { pushToTalk: false };
+      this.debugLog('gemini.reconnect.attempt', opts);
+      Promise.resolve(this.stop({ preserveStatus: true }))
+        .then(() => this.start(opts));
+    }, delay);
+  }
+
   setCaptureEnabled(enabled) {
     this.capture?.setEnabled(enabled);
   }
 
+
+	async activateNativeVoice(reason) {
+		if (this.usingFallback || !isNativeVoiceAvailable()) return false;
+		if (!this.lastMintOptions) return false;
+		this.usingFallback = true;
+		this.debugLog('native.voice.activate', { reason });
+		this.setStatus('connecting', 'Switching to native voice');
+		this.systemVoiceFallback = new NativeVoiceAdapter({
+		  onTranscript: (text) => {
+			const ctl = this.controller || this.input?.controller || this.session?.controller;
+			if (ctl?.sendTextCommand) ctl.sendTextCommand(text);
+			else this.debugLog('native.voice.transcript', { text });
+		  },
+		  onStatus: (state, message) => this.setStatus(state, message),
+		  onError: (err) => this.debugLog('native.voice.error', { error: err?.message }),
+		});
+		await this.systemVoiceFallback.start({
+		  pushToTalk: Boolean(this.lastMintOptions.pushToTalk),
+		});
+		return true;
+	}	
+
   closeTransport() {
+    if (this.systemVoiceFallback) {
+      try { this.systemVoiceFallback.stop(); } catch {}
+      this.systemVoiceFallback = null;
+      this.usingFallback = false;
+    }
     this.activityOpen = false;
     this.micLive = false;
     this.ready = false;

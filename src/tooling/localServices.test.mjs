@@ -11,15 +11,15 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { overpassProxy } from 'gods-eye-view/server/providers/overpass';
-import { militaryInstallationsProxy } from 'gods-eye-view/server/providers/military-installations';
+import { overpassProxy } from 'gids-eye-view/server/providers/overpass';
+import { militaryInstallationsProxy } from 'gids-eye-view/server/providers/military-installations';
 import {
   regionalBriefProxy,
   weatherEffectsProxy,
-} from 'gods-eye-view/server/providers/regional';
-import { voiceSupportProxy } from 'gods-eye-view/server/providers/voice';
-import { geminiRealtimeProxy } from 'gods-eye-view/server/providers/gemini';
-import { keySetupEndpoint } from 'gods-eye-view/server/standalone/key-setup';
+} from 'gids-eye-view/server/providers/regional';
+import { voiceSupportProxy } from 'gids-eye-view/server/providers/voice';
+import { geminiRealtimeProxy } from 'gids-eye-view/server/providers/gemini';
+import { keySetupEndpoint } from 'gids-eye-view/server/standalone/key-setup';
 import { realtimeInstructions } from '../../server/providers/voice/instructions.js';
 import { GEV_REALTIME_TOOLS } from '../../server/providers/voice/tools.js';
 import { standaloneVoiceTools } from '../../server/standalone/voiceTools.js';

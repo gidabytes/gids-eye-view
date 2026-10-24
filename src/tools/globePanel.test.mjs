@@ -124,7 +124,7 @@ test('a view that only follows an aircraft is framed where the aircraft is', asy
 });
 
 test('the package exports the panel resource and its runtime together', async () => {
-  const panel = await import('gods-eye-view/tools/panel');
+  const panel = await import('gids-eye-view/tools/panel');
   const resource = panel.createGlobePanelResource({
     runtime: panel.panelRuntime,
     panelKey: 'key',

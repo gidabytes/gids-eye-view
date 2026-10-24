@@ -44,6 +44,14 @@ function geminiSetup({
         voiceConfig: { prebuiltVoiceConfig: { voiceName: voice } },
       },
     },
+    // Context window compression: without this the Live session ends at
+    // the 128k-token limit and the client sees an incomplete response.
+    contextWindowCompression: {
+      slidingWindow: {},
+    },
+    // Session resumption: lets the server send a resumption handle so the
+    // client can reconnect and continue the same conversation after a drop.
+    sessionResumption: {},
     // Push-to-talk already knows exactly when the user is speaking, so the
     // client marks the turn with activityStart/activityEnd instead. Verified
     // against the live API: with automatic detection left on, streamed audio

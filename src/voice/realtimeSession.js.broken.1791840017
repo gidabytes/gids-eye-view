@@ -1,0 +1,45 @@
+import { GevRealtimeController } from './realtimeController.js';
+import { GeminiRealtimeConnection } from './geminiConnection.js';
+
+// In createRealtimeSession, before creating the controller:
+import { NativeVoiceAdapter, isNativeVoiceAvailable } from './nativeVoice.js';
+
+export function createRealtimeSession({ ... }) {
+  // Use native voice as the primary connection when available
+  if (isNativeVoiceAvailable()) {
+    const nativeAdapter = new NativeVoiceAdapter({
+      onTranscript: (text) => {
+        // Route the transcript to the controller's text command handler
+        controller.sendTextCommand(text);
+      },
+      onStatus: (state, msg) => controller.setStatus(state, msg),
+      onError: (err) => controller.reportError('Native voice', err),
+    });
+
+    return {
+      controller,
+      capabilities: { pushToTalk: true },
+      start: (settings) => nativeAdapter.start(settings),
+      stop: (settings) => nativeAdapter.stop(settings),
+      sendText: (text) => controller.sendTextCommand(text),
+      sendMapEvent: (event) => controller.notifyMapEvent(event),
+      ignoreButtonClick: () => Boolean(controller.spaceKeyHeld),
+      bindControls() {
+        controller.bindPushToTalkShortcut();
+      },
+    };
+  }
+
+  // Fallback to Gemini Live if native voice is not available
+  const controller = createController({
+    ...options,
+    actionExecutor: runAction,
+    onSessionEvent: emit,
+    connectionClass: GeminiRealtimeConnection,
+  });
+
+  return {
+    controller,
+    // ... rest of the Gemini-based session
+  };
+}

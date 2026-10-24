@@ -899,6 +899,22 @@ const schemas = [
       },
     },
   },
+  {
+    name: 'control_ocean',
+    parameters: {
+      type: 'object',
+      additionalProperties: false,
+      required: ['action'],
+      properties: {
+        action: {
+          type: 'string',
+          enum: ['ocean_on', 'ocean_off', 'launch_sub', 'recall_sub', 'dive', 'surface', 'go_to_site', 'status'],
+        },
+        depthM: { type: 'number', minimum: 0, maximum: 10935 },
+        site: { type: 'string', maxLength: 80 },
+      },
+    },
+  },
 ];
 
 function freeze(value) {

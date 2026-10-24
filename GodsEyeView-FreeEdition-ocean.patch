@@ -1,0 +1,1556 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index 822c0ab..3a33439 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -2,6 +2,27 @@
+ 
+ ## [Unreleased]
+ 
++- Add Ocean view and a pilotable exploration submarine (`src/ocean/`). A small
++  control row just above the command dock (🌊 Ocean, 🛥 Sub, dive-site picker)
++  switches the globe to Cesium World Bathymetry (ion asset 2426648, through the
++  existing Cesium ion token) with keyless GEBCO shaded relief, hiding the
++  photorealistic 3D tiles until Ocean view is turned off. The submarine is a
++  simulation over public bathymetry: it probes the seabed every ~0.5 s, keeps
++  15 m clearance, stops at land, darkens with depth and shows a
++  depth/seafloor/heading/speed/zone HUD. Keys W/S/A/D, Q/E rise/dive, Shift
++  explore speed, X camera are captured only while the sub is launched, so the
++  D (detection) and other shortcuts are unaffected otherwise; Space stays
++  push-to-talk. The controls hide in clean view and recording mode (the HUD
++  stays visible while recording). New additive voice tool `control_ocean`
++  (31st tool; the 30 existing tool definitions are byte-identical). The viewer
++  is published as `window.__gevViewer` for the module.
++- Add `scripts/install-ocean-tools.sh`: optional ocean & sonar Python
++  toolchain in its own venv (bathy, echopype, oceanstream, PINGMapper,
++  pytritech, PyGMT, py3dtiles, ObsPy, OpenCV, xarray/netCDF4, rasterio,
++  geopandas, JupyterLab), with an optional MB-System source build
++  (`--with-mbsystem`) and a `gev-ocean-check` smoke test.
++
++
+ - Add Norway's road cameras from Statens vegvesen as a CCTV pack. The camera
+   list is one keyless GeoJSON request to the agency's OGC API view of its
+   DATEX 3.1 CCTV table, so no DATEX account is needed. Every working camera
+diff --git a/DATA_SOURCES.md b/DATA_SOURCES.md
+index 4730c8b..810bbf8 100644
+--- a/DATA_SOURCES.md
++++ b/DATA_SOURCES.md
+@@ -23,6 +23,7 @@ How to read this:
+ | **OpenStreetMap** | Map and place data (roads, military areas and names, ALPR, place search, outlines); via vector tiles, hourly ALPR extract, bundled data, Nominatim and optional self-configured Overpass | [ODbL 1.0](https://opendatacommons.org/licenses/odbl/1-0/) | © OpenStreetMap contributors |
+ | **Google Map Tiles API** (Photorealistic 3D Tiles) + Places/Geocoding | The 3D globe, voice scene context, and on-demand nearby installation search                                                         | Google Maps Platform ToS (proprietary, your own key + billing)                                                                                                                                                                                                                                                                                        | "Google" / "Google Maps" logo — **shown in-app**, required                                                                                  |
+ | **Cesium ion** (Google Photorealistic 3D Tiles, ion-hosted imagery, Cesium World Terrain) | The free 3D-globe route: Google's photorealistic tiles served through your own ion access token, plus world terrain and ion-hosted imagery                                                                                                                                               | Cesium ion Terms of Service. The free Community plan is for personal, non-commercial use with monthly quotas; your own token, and the Google tiles must be added to My Assets                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | "Cesium ion" and "Google" credits — **shown in-app**, required                                                                              |
++| **Cesium World Bathymetry** (ion asset 2426648) + **GEBCO** grid WMS (`wms.gebco.net/mapserv`, layer `GEBCO_LATEST`) | Ocean view: seafloor terrain heights for the globe and the exploration submarine's seabed probe, plus keyless shaded-relief imagery. Fetched only while Ocean view is on | Cesium ion Terms of Service (your own token; add the asset to My Assets). GEBCO grid: public domain-style [GEBCO terms](https://www.gebco.net/data_and_products/gridded_bathymetry_data/#a1) — free to use with attribution | "Bathymetry: GEBCO Compilation Group" and the Cesium ion credit — shown in-app |
+ | **Cesium ion geocoder** (Google / Microsoft Bing, through your ion token)                | Named-place search ("fly to the Pyramids of Giza"): with a Cesium ion token the search asks Google through ion first, and Bing through ion when Google and Wikipedia have no answer. The text of each searched name goes to Cesium ion, which forwards it to Google or Microsoft. Runs through CesiumJS's own `IonGeocoderService` | Cesium ion Terms of Service (Community plan: personal / non-commercial use, monthly geocode allowance on your own account); Google and Microsoft terms as passed through by Cesium ion | The geocoder's credit ("Google" or "Microsoft Bing") on the on-globe credit line after a search, as Cesium's geocoder widget shows it |
+ | **Google Gemini Live API** (voice, free tier)                                             | Voice control: microphone audio, the assistant's spoken answers, and the map-view details the voice agent is given (place and layer names, a viewport screenshot at street level) are sent to Google through this server's relay; your key never reaches the browser                     | Gemini API Additional Terms (your own key). **On the free tier Google may use submitted content and responses to improve its products and human reviewers may read them**; paid usage is treated differently                                                                                                                                                                                                                                                                                                                                                                                                                                              | None required (courtesy)                                                                                                                    |
+ | **Groq** (AI HUD summary, free tier)                                                      | Text only: the HUD's place, street, nearby-place and enabled-layer labels, to write the five-word summary                                                                                                                                                                                | Groq terms (your own key); see Groq's data policy                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | None required (courtesy)                                                                                                                    |
+diff --git a/README.md b/README.md
+index 0ee322d..be1823c 100644
+--- a/README.md
++++ b/README.md
+@@ -84,6 +84,9 @@ You never need any other key. (If you happen to already have a Google Maps Platf
+ 
+ ---
+ 
++## 🌊 Ocean view & exploration submarine
++Turn on **🌊 Ocean** (just above the command dock, bottom-right) to see the seafloor, then **🛥 Sub** to pilot an exploration submarine anywhere across the globe: W/S/A/D, Q/E to rise/dive, Shift for explore speed, X for camera — or say *"dive to 2000 meters"*, *"take the sub to Challenger Deep"*. It's a simulation over public bathymetry. Optional offline sonar/bathymetry tools: `scripts/install-ocean-tools.sh`. Details: [docs/OCEAN.md](docs/OCEAN.md).
++
+ ## Troubleshooting
+ 
+ | Symptom | Fix |
+diff --git a/docs/OCEAN.md b/docs/OCEAN.md
+new file mode 100644
+index 0000000..642f539
+--- /dev/null
++++ b/docs/OCEAN.md
+@@ -0,0 +1,61 @@
++# Ocean view & exploration submarine
++
++Lawful, educational use: the submarine is a **simulation** over public
++bathymetry. It never controls, tracks or represents a real vessel.
++
++## Using it
++
++| Control                                                         | What it does                                                                                                                    |
++| --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
++| 🌊 **Ocean** (control row above the command dock, bottom-right) | Seafloor terrain (Cesium World Bathymetry) + GEBCO relief; photorealistic 3D tiles are hidden until you turn it off             |
++| 🛥 **Sub**                                                       | Launches the submarine under the camera (turns Ocean view on if needed)                                                         |
++| **Dive site…**                                                  | Challenger Deep, Philippine Trench, Tubbataha, Cebu Strait, Great Barrier Reef, Mid-Atlantic Ridge, Titanic, Puerto Rico Trench |
++| **W / S**                                                       | Throttle forward / reverse                                                                                                      |
++| **A / D**                                                       | Steer                                                                                                                           |
++| **Q / E**                                                       | Rise / dive                                                                                                                     |
++| **Shift**                                                       | Explore speed (×40, to cross ocean basins in minutes)                                                                           |
++| **X**                                                           | Camera: chase → cockpit → free                                                                                                  |
++| HUD buttons                                                     | The same controls with the mouse                                                                                                |
++
++Sub keys are captured **only while the sub is launched**, so your normal
++shortcuts (D detection, C CCTV, …) are back as soon as you recall it. Space stays
++push-to-talk.
++
++### Voice (`control_ocean`)
++
++"ocean view" · "launch the submarine" · "dive to 2000 meters" · "surface" ·
++"take the sub to Challenger Deep" · "how deep are we?" · "recall the sub"
++
++## Real seafloor heights
++
++Add the free **Cesium World Bathymetry** asset (id `2426648`) to _My Assets_ at
++<https://ion.cesium.com/assetdepot> for the same account as your
++`CESIUM_ION_TOKEN`. Without it the sub still runs, with a flat limit of
++10,935 m (Challenger Deep) and a notice in the HUD.
++
++## Code map
++
++| File                                      | Role                                                                                             |
++| ----------------------------------------- | ------------------------------------------------------------------------------------------------ |
++| `src/ocean/subPhysics.js`                 | Pure physics (great-circle motion, depth/seafloor clamp, light, zones, dive sites) — unit-tested |
++| `src/ocean/subPhysics.test.mjs`           | `node --test` suite (runs with `npm test`)                                                       |
++| `src/ocean/oceanRuntime.js`               | `OceanView`, `Submarine`, dock + HUD, `window.__gevOcean` API                                    |
++| `src/ocean/index.js`                      | Boots after the viewer exists (`window.__gevViewer`)                                             |
++| `src/ocean/ocean.css`                     | Control row, HUD, underwater tint; hidden in clean view / recording mode                         |
++| `src/voice/*`, `server/providers/voice/*` | `control_ocean` schema, description, handler                                                     |
++
++## Offline ocean & sonar toolchain (optional)
++
++```bash
++scripts/install-ocean-tools.sh                    # venv at ~/gev-ocean-tools
++scripts/install-ocean-tools.sh --with-mbsystem    # + MB-System from source (sudo; apt or Homebrew)
++scripts/install-ocean-tools.sh --check            # report only
++source ~/gev-ocean-tools/bin/activate && gev-ocean-check
++```
++
++Installs bathy, xarray/netCDF4, rasterio/geopandas, echopype, oceanstream,
++PINGMapper, pytritech, ObsPy, OpenCV, PyGMT (+ GMT and `libgmt-dev`),
++py3dtiles and JupyterLab. `--with-experimental` adds sonar-vision (single
++release, no public source repo). `hadexion` is intentionally not installed: its
++wheel has no `hadexion` module and drops generic `src`/`examples` packages into
++site-packages.
+diff --git a/scripts/install-ocean-tools.sh b/scripts/install-ocean-tools.sh
+new file mode 100755
+index 0000000..1920086
+--- /dev/null
++++ b/scripts/install-ocean-tools.sh
+@@ -0,0 +1,234 @@
++#!/usr/bin/env bash
++# =============================================================================
++#  Gid's Eye View - Ocean & Sonar Python toolchain installer (v2)
++#  Copyright (c) 2026 Gidabytes - MIT License
++#
++#  Installs into its own venv (never touches system Python). Idempotent.
++#  Delete the venv folder to uninstall.
++#
++#  Usage:
++#    scripts/install-ocean-tools.sh                     # venv at ~/gev-ocean-tools
++#    scripts/install-ocean-tools.sh --venv=~/my-ocean   # custom venv
++#    scripts/install-ocean-tools.sh --with-mbsystem     # + build MB-System (sudo, apt/Homebrew)
++#    scripts/install-ocean-tools.sh --with-experimental # + sonar-vision (single release, unvetted)
++#    scripts/install-ocean-tools.sh --with-holoocean    # + HoloOcean UE5 simulator (multi-GB)
++#    scripts/install-ocean-tools.sh --check             # report only
++#    scripts/install-ocean-tools.sh --force             # reinstall packages
++#
++#  Changes from v1: hadexion removed (no importable module; installs generic
++#  top-level "src"/"examples" packages), libgmt-dev added so PyGMT can load
++#  libgmt.so, MB-System is actually built (CMake, newest release tag, GCC 13
++#  <cstdint> workaround), smoke test installed as `gev-ocean-check`.
++# =============================================================================
++set -uo pipefail
++
++if [ -t 1 ]; then B=$'\e[1m'; G=$'\e[32m'; Y=$'\e[33m'; R=$'\e[31m'; C=$'\e[36m'; N=$'\e[0m'; else B=; G=; Y=; R=; C=; N=; fi
++info(){ printf '%s[INFO]%s %s\n' "$C" "$N" "$*"; }
++ok(){   printf '%s[ OK ]%s %s\n' "$G" "$N" "$*"; }
++warn(){ printf '%s[WARN]%s %s\n' "$Y" "$N" "$*"; }
++
++OCEAN_VENV="$HOME/gev-ocean-tools"; WITH_EXPERIMENTAL=0; WITH_HOLOOCEAN=0; WITH_MBSYSTEM=0; OCEAN_CHECK=0; FORCE=0
++for a in "$@"; do case "$a" in
++  --venv=*) OCEAN_VENV="${a#--venv=}"; OCEAN_VENV="${OCEAN_VENV/#\~/$HOME}" ;;
++  --with-experimental) WITH_EXPERIMENTAL=1 ;;
++  --with-holoocean) WITH_HOLOOCEAN=1 ;;
++  --with-mbsystem) WITH_MBSYSTEM=1 ;;
++  --check) OCEAN_CHECK=1 ;;
++  --force) FORCE=1 ;;
++  -h|--help) sed -n '2,24p' "$0"; exit 0 ;;
++  *) echo "Unknown flag: $a (try --help)" >&2; exit 2 ;;
++esac; done
++
++# =============================================================================
++#  OCEAN & SONAR PYTHON TOOLCHAIN (merged from install-ocean-tools.sh v1)
++# =============================================================================
++# "<import name>|<pip name>" - all verified on PyPI (Oct 2026)
++OCEAN_CORE=(
++  "numpy|numpy" "scipy|scipy" "pandas|pandas" "xarray|xarray" "netCDF4|netCDF4"
++  "matplotlib|matplotlib" "rasterio|rasterio" "geopandas|geopandas" "shapely|shapely" "pyproj|pyproj"
++  "bathy|bathy"
++  "echopype|echopype" "oceanstream|oceanstream" "pytritech|pytritech" "pingmapper|pingmapper"
++  "skimage|scikit-image" "cv2|opencv-python" "obspy|obspy"
++  "jupyterlab|jupyterlab" "ipywidgets|ipywidgets" "plotly|plotly"
++  "py3dtiles|py3dtiles"
++)
++# Single-release package with no linked source repository: opt-in only.
++# (hadexion was evaluated and excluded: its wheel has no "hadexion" module and installs
++#  generic top-level "src"/"examples" packages into site-packages, which can shadow other code.)
++OCEAN_EXPERIMENTAL=( "sonar_vision|sonar-vision" )
++
++pick_python() {
++  local c
++  for c in python3.12 python3.11 python3.10 python3.9 python3; do
++    command -v "$c" >/dev/null 2>&1 || continue
++    "$c" -c 'import sys; sys.exit(0 if sys.version_info >= (3,9) else 1)' 2>/dev/null && { echo "$c"; return 0; }
++  done
++  return 1
++}
++
++apt_install() {  # best-effort system packages; asks sudo once
++  command -v apt-get >/dev/null 2>&1 || return 1
++  sudo apt-get update -qq || true; sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq "$@" >/dev/null
++}
++
++have_libgmt() {  # PyGMT loads the unversioned libgmt.so (Debian/Ubuntu: from libgmt-dev)
++  ldconfig -p 2>/dev/null | grep -q 'libgmt\.so ' && return 0
++  [ "$(uname -s)" = Darwin ] && command -v gmt >/dev/null 2>&1 && return 0
++  return 1
++}
++ensure_gmt() {
++  if command -v gmt >/dev/null 2>&1 && have_libgmt; then ok "GMT $(gmt --version 2>/dev/null)"; return 0; fi
++  info "GMT or its shared library is missing (needed by PyGMT and MB-System)."
++  if   command -v apt-get >/dev/null 2>&1; then apt_install gmt gmt-gshhg gmt-dcw libgmt-dev ghostscript || true
++  elif command -v brew    >/dev/null 2>&1; then brew install gmt ghostscript || true
++  elif command -v dnf     >/dev/null 2>&1; then sudo dnf install -y GMT || true
++  fi
++  command -v gmt >/dev/null 2>&1 && have_libgmt && { ok "GMT installed."; return 0; }
++  warn "GMT still missing - PyGMT skipped. See https://www.generic-mapping-tools.org/download/"
++  return 1
++}
++
++O_INSTALLED=0; O_SKIPPED=0; O_FAILED=(); O_TOTAL=0
++mod_present(){ "$OPY" -c "import importlib.util,sys; sys.exit(0 if importlib.util.find_spec('$1') else 1)" 2>/dev/null; }
++ocean_install_list() {
++  local e imp dist
++  for e in "$@"; do
++    imp="${e%%|*}"; dist="${e##*|}"; O_TOTAL=$((O_TOTAL+1))
++    if [ "$OCEAN_CHECK" = 1 ]; then
++      if mod_present "$imp"; then ok "$dist"; O_SKIPPED=$((O_SKIPPED+1)); else warn "$dist (missing)"; O_FAILED+=("$dist"); fi
++      continue
++    fi
++    if [ "$FORCE" = 0 ] && mod_present "$imp"; then printf '%s[SKIP]%s %s\n' "$C" "$N" "$dist"; O_SKIPPED=$((O_SKIPPED+1)); continue; fi
++    if "$OPY" -m pip install --quiet --upgrade "$dist"; then ok "$dist"; O_INSTALLED=$((O_INSTALLED+1))
++    else warn "$dist failed"; O_FAILED+=("$dist"); fi
++  done
++}
++
++build_mbsystem() {
++  if command -v mbinfo >/dev/null 2>&1; then ok "MB-System already installed ($(command -v mbinfo))"; return 0; fi
++  info "Building MB-System from https://github.com/dwcaress/MB-System (CMake, ~20-40 min) ..."
++  if command -v apt-get >/dev/null 2>&1; then
++    apt_install build-essential git libtirpc-dev netcdf-bin libnetcdf-dev libgdal-dev \
++      gmt libgmt6 libgmt-dev libproj-dev libfftw3-bin libfftw3-dev libmotif-dev \
++      xfonts-100dpi libglu1-mesa-dev libopencv-dev cmake gfortran python3-pil \
++      || { warn "MB-System prerequisites failed to install."; return 1; }
++  elif command -v brew >/dev/null 2>&1; then
++    info "Homebrew detected - using the maintained formula."
++    brew install mbsystem && { ok "MB-System installed via Homebrew."; return 0; } || return 1
++  else
++    warn "Automatic MB-System build supports apt (Ubuntu/Debian) and Homebrew only."
++    return 1
++  fi
++  local src="${MBSYSTEM_SRC:-$HOME/src/MB-System}" tag
++  # Prefer the newest release tag; fall back to the default branch.
++  tag="$(git ls-remote --tags --refs https://github.com/dwcaress/MB-System.git 2>/dev/null \
++        | awk -F/ '{print $NF}' | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n1)"
++  if [ -d "$src/.git" ]; then
++    git -C "$src" fetch --tags --quiet || true
++  else
++    mkdir -p "$(dirname "$src")"
++    git clone --quiet https://github.com/dwcaress/MB-System.git "$src" || { warn "clone failed"; return 1; }
++  fi
++  [ -n "$tag" ] && git -C "$src" checkout --quiet "$tag" && info "Using release $tag"
++  mkdir -p "$src/build" && cd "$src/build" || return 1
++  # MB-System 5.8.1 TRN sources miss #include <cstdint> and fail on GCC 13+ (Ubuntu 24.04);
++  # force-include it for C++. (TRN can't be disabled: libmbio links its r7kr library.)
++  cmake .. -DbuildTests=OFF -DCMAKE_CXX_FLAGS="-include cstdint" >cmake.log 2>&1 || { warn "cmake failed - see $src/build/cmake.log"; cd - >/dev/null; return 1; }
++  make -j"$(nproc 2>/dev/null || echo 2)" >make.log 2>&1 || { warn "make failed - see $src/build/make.log"; cd - >/dev/null; return 1; }
++  sudo make install >install.log 2>&1 && sudo ldconfig 2>/dev/null
++  cd - >/dev/null
++  command -v mbinfo >/dev/null 2>&1 && ok "MB-System installed: $(mbinfo 2>&1 | grep -m1 -i "version")" \
++    || { warn "MB-System install did not put mbinfo on PATH."; return 1; }
++}
++
++write_ocean_check() {  # smoke test you can re-run any time: gev-ocean-check
++  cat > "$OCEAN_VENV/bin/gev-ocean-check" <<'PYCHK'
++#!/usr/bin/env python
++import importlib, sys
++G, R, Y, Z = ("\033[32m", "\033[31m", "\033[33m", "\033[0m") if sys.stdout.isatty() else ("", "", "", "")
++mods = [("bathy","bathy"),("echopype","echopype"),("oceanstream","oceanstream"),("pingmapper","pingmapper"),
++        ("pytritech","pytritech"),("py3dtiles","py3dtiles"),("xarray","xarray"),("netCDF4","netCDF4"),
++        ("rasterio","rasterio"),("geopandas","geopandas"),("scipy","scipy"),("cv2","opencv-python"),
++        ("obspy","obspy"),("pygmt","pygmt"),
++        ("sonar_vision","sonar-vision (experimental)"),
++        ("holoocean","holoocean (optional)")]
++bad = 0
++for mod, name in mods:
++    try:
++        m = importlib.import_module(mod)
++        print(f"  {G}✓{Z} {name:<28} {getattr(m, '__version__', 'present')}")
++    except ImportError:
++        optional = "(" in name
++        print(f"  {'·' if optional else R+'✗'+Z} {name:<28} {'not installed' if optional else 'MISSING'}")
++        bad += 0 if optional else 1
++    except Exception as e:
++        print(f"  {Y}!{Z} {name:<28} import error: {e.__class__.__name__}: {str(e).splitlines()[0]}")
++        bad += 1
++import shutil
++print(f"  {'✓' if shutil.which('mbinfo') else '·'} {'MB-System (mbinfo)':<28} {shutil.which('mbinfo') or 'not installed'}")
++print(f"  {'✓' if shutil.which('gmt') else '·'} {'GMT':<28} {shutil.which('gmt') or 'not installed'}")
++raise SystemExit(1 if bad else 0)
++PYCHK
++  chmod +x "$OCEAN_VENV/bin/gev-ocean-check"
++}
++
++install_ocean_tools() {
++  echo; echo "${B}== Ocean & sonar Python toolchain ==${N}  venv: $OCEAN_VENV"
++  local base; base="$(pick_python)" || {
++    warn "Python >= 3.9 not found."; apt_install python3 python3-venv python3-pip || true
++    base="$(pick_python)" || { warn "Skipping ocean toolchain (no Python)."; return 1; }; }
++  ok "Python: $($base --version)"
++
++  if [ ! -x "$OCEAN_VENV/bin/python" ]; then
++    [ "$OCEAN_CHECK" = 1 ] && { warn "No venv at $OCEAN_VENV - nothing installed yet."; return 1; }
++    "$base" -m venv "$OCEAN_VENV" 2>/dev/null || {
++      info "Installing python venv support ..."; apt_install python3-venv || true
++      "$base" -m venv "$OCEAN_VENV" || { warn "venv creation failed."; return 1; }; }
++    ok "venv created at $OCEAN_VENV"
++  fi
++  OPY="$OCEAN_VENV/bin/python"
++  [ "$OCEAN_CHECK" = 1 ] || "$OPY" -m pip install --quiet --upgrade pip setuptools wheel || warn "pip upgrade issue - continuing."
++
++  # rasterio/geopandas/netCDF4 ship wheels; GDAL headers only matter for source builds.
++  echo "${B}[1/5] Core bathymetry, sonar & signal packages${N}"
++  ocean_install_list "${OCEAN_CORE[@]}"
++
++  echo "${B}[2/5] PyGMT${N}"
++  if [ "$OCEAN_CHECK" = 1 ] || ensure_gmt; then ocean_install_list "pygmt|pygmt"; else warn "PyGMT skipped."; fi
++
++  echo "${B}[3/5] Experimental packages${N}"
++  if [ "$WITH_EXPERIMENTAL" = 1 ]; then
++    warn "sonar-vision has one release and no public source repo - review before trusting its output."
++    ocean_install_list "${OCEAN_EXPERIMENTAL[@]}"
++  else printf '%s[SKIP]%s sonar-vision, hadexion (add --with-experimental)\n' "$C" "$N"; fi
++
++  echo "${B}[4/5] HoloOcean${N}"
++  if [ "$WITH_HOLOOCEAN" = 1 ]; then info "HoloOcean pulls multi-GB Unreal Engine binaries ..."; ocean_install_list "holoocean|holoocean"
++  else printf '%s[SKIP]%s HoloOcean (add --with-holoocean)\n' "$C" "$N"; fi
++
++  echo "${B}[5/5] MB-System${N}"
++  if [ "$WITH_MBSYSTEM" = 1 ] && [ "$OCEAN_CHECK" = 0 ]; then build_mbsystem || warn "MB-System not installed - the rest of the toolchain is fine."
++  elif command -v mbinfo >/dev/null 2>&1; then ok "MB-System present"
++  else printf '%s[SKIP]%s MB-System (add --with-mbsystem)\n' "$C" "$N"; fi
++
++  [ "$OCEAN_CHECK" = 1 ] || write_ocean_check
++  echo; echo "${B}Smoke test${N}"
++  "$OPY" "$OCEAN_VENV/bin/gev-ocean-check" && ok "Ocean toolchain ready." || warn "Some imports failed - see above."
++  echo "  Summary: $O_TOTAL considered · $O_SKIPPED already present · $O_INSTALLED installed now · ${#O_FAILED[@]} failed"
++  [ ${#O_FAILED[@]} -gt 0 ] && printf '    - %s\n' "${O_FAILED[@]}" && echo "  Retry one with: $OPY -m pip install <pkg> -v"
++  echo "  Use it:  source \"$OCEAN_VENV/bin/activate\"   ·   re-check: gev-ocean-check"
++}
++
++_unused_maybe_ocean() {
++  if [ "$OCEAN" = ask ]; then
++    if [ -t 0 ]; then
++      echo; echo "${B}Optional: ocean & sonar Python toolchain${N} (bathy, echopype, PINGMapper, PyGMT, py3dtiles ...)"
++      read -rp "  Install it now into $OCEAN_VENV? [y/N] " a
++      case "${a:-N}" in [Yy]*) OCEAN=yes ;; *) OCEAN=no ;; esac
++    else OCEAN=no; fi
++  fi
++  [ "$OCEAN" = yes ] && install_ocean_tools
++  return 0
++}
++
++install_ocean_tools
+diff --git a/server/providers/voice/instructions.js b/server/providers/voice/instructions.js
+index 5658f9e..f3ec8b3 100644
+--- a/server/providers/voice/instructions.js
++++ b/server/providers/voice/instructions.js
+@@ -53,7 +53,7 @@ function realtimeInstructions(
+     'Disambiguation table — basemap vs layer vs style: basemap switching requires an explicit stack name — "Bing aerial" means set_map_stack bing-aerial, "aerial with labels" means bing-labels, "OSM"/"road map" means osm, "Esri"/"Esri imagery" means esri-imagery, "Google 3D"/"photorealistic" means photoreal. Any mention of "satellite" or "satellites" ALWAYS means the satellites DATA LAYER via set_layer_visibility, never a basemap. "surveillance"/"night vision"/"thermal" are visual STYLES via set_visual_style.',
+     'HUD requests ("hud on/off", "switch to operator/minimal/tactical/cyber layout") use set_hud. Detection requests ("detection on", "dense mode", "balanced mode", "sparse mode", "set density to 25", "use weighted allocation") use set_detection. Density snaps to 0/25/50/75/100 and derives Sparse/Balanced/Dense; panoptic is a legacy alias for Dense.',
+     'Cyber sonar requests use set_cyber_sonar: enabled, rings, rangePct, intensityPct (Power), opacityPct, sectorDeg. For settings questions read get_current_view_state.controls.hud.sonar. Sonar is not detection. Do not silently switch themes, reveal the HUD or enable sonar when changing a slider. If the user explicitly requests Cyber plus sonar settings, call set_hud first, wait for success, then set_cyber_sonar. Confirm returned values; mapSweepActive and contactSweepActive distinguish saved settings from active map effects, including in Cockpit or reduced motion. Do not claim visible contacts solely because enabled is true.',
+-    'Bloom/sharpen requests use set_post_processing. Scene requests ("play orbital watch", "stop the scene", "what scenes are there") use control_scene. CCTV camera requests ("next camera", "nearest camera", "select the Congress camera", "show coverage") use control_cctv — the CCTV layer must be enabled first.',
++    'Bloom/sharpen requests use set_post_processing. Scene requests ("play orbital watch", "stop the scene", "what scenes are there") use control_scene. CCTV camera requests ("next camera", "nearest camera", "select the Congress camera", "show coverage") use control_cctv — the CCTV layer must be enabled first. Ocean and submarine requests ("ocean view", "launch the submarine", "dive to 2000 meters", "surface", "take the sub to Challenger Deep", "how deep are we") use control_ocean.',
+     'Radio playback requests use control_radio. "Turn on/start the radio" means action=play; action=enable only reveals Radio markers and must be reserved for explicit "show/enable the Radio layer/markers" requests. After a prepared playback result, briefly confirm any other completed actions and say "Turning on the radio"—never claim it is already playing. The client keeps Radio muted until playback is verified, then closes voice before restoring Radio volume. Examples: "play news near Austin" → select category=news locationId=austin; "play US news" → select category=news country=US; "Radio volume 30" → volume; pause/resume/stop/next/previous use the matching action. Radio selection never moves the camera.',
+     '"Track/follow <something specific>" (a callsign, ship name, satellite name) uses track_entity. "Take me to the biggest fire" uses track_entity with query "biggest fire" (the fires layer must be enabled). Bare "orbit" means camera orbit of the current landmark. "Stop following/tracking" uses stop_tracking.',
+     '"Show me which planes are overhead"/"frame the ships"/"show me the satellites above" use frame_overhead with the matching target.',
+diff --git a/server/providers/voice/toolDescriptions.js b/server/providers/voice/toolDescriptions.js
+index 48177dd..d53f263 100644
+--- a/server/providers/voice/toolDescriptions.js
++++ b/server/providers/voice/toolDescriptions.js
+@@ -599,4 +599,16 @@ export const ACTION_DESCRIPTIONS = {
+       'Predict the next pass in 24 hours for one satellite in the loaded catalog, identified by exact NORAD ID or name. Ambiguous names return candidates: ask for a choice rather than selecting one. Defaults to geometric passes; visibleOnly requires estimated illumination and a dark observer sky, which does not guarantee naked-eye visibility. Uses camera location unless coordinates are supplied.',
+     $position: 1,
+   },
++  control_ocean: {
++    description:
++      'Ocean view and the exploration submarine (a simulation over public bathymetry; it never controls or tracks a real vessel). ocean_on/ocean_off switch the seafloor view; launch_sub spawns the sub under the camera; dive descends to depthM (default 100 m deeper); surface returns to 0 m; go_to_site teleports the sub to a named dive site (Challenger Deep, Philippine Trench, Tubbataha, Cebu Strait, Great Barrier Reef, Mid-Atlantic Ridge, Titanic, Puerto Rico Trench); status reports depth, seafloor, heading, speed and ocean zone. The pilot steers with W/S/A/D and Q/E.',
++    $position: 1,
++    parameters: {
++      properties: {
++        action: { description: 'What to do.' },
++        depthM: { description: 'Target depth in metres for dive.' },
++        site: { description: 'Dive site name for go_to_site.' },
++      },
++    },
++  },
+ };
+diff --git a/src/app/viewer.js b/src/app/viewer.js
+index 9b6e7f6..56e48de 100644
+--- a/src/app/viewer.js
++++ b/src/app/viewer.js
+@@ -134,6 +134,8 @@ export function createApplicationViewer({ container, creditContainer }) {
+     viewer.scene.skyAtmosphere.atmosphereLightIntensity = 18;
+     viewer.scene.skyAtmosphere.saturationShift = -0.12;
+     viewer.scene.skyAtmosphere.brightnessShift = -0.08;
++    // Published for the optional ocean module (src/ocean/index.js).
++    if (typeof window !== 'undefined') window.__gevViewer = viewer;
+     return viewer;
+   } catch (error) {
+     viewer.destroy();
+diff --git a/src/firstRunExperience.test.mjs b/src/firstRunExperience.test.mjs
+index 93d4673..7f2a192 100644
+--- a/src/firstRunExperience.test.mjs
++++ b/src/firstRunExperience.test.mjs
+@@ -661,7 +661,8 @@ test('the voice TOOL SCHEMA matches the pinned release — the mission mapping i
+   // Canonical serialization pins every tool name, description, property and
+   // ordering while allowing source formatting. Derived from the unchanged
+   // release schema before formatting (the previous source-byte pin passed).
+-  const legacyTools = structuredClone(GEV_REALTIME_TOOLS).filter((tool) => tool.name !== 'set_cyber_sonar');
++  // control_ocean (ocean view + submarine) is a deliberate additive tool, like set_cyber_sonar.
++  const legacyTools = structuredClone(GEV_REALTIME_TOOLS).filter((tool) => !['set_cyber_sonar', 'control_ocean'].includes(tool.name));
+   const hudLayout = legacyTools.find((tool) => tool.name === 'set_hud').parameters.properties.layout;
+   assert.deepEqual(hudLayout.enum, ['tactical', 'operator', 'minimal', 'cyber']);
+   // Cyber deliberately adds one layout; first-run missions still change no tools.
+diff --git a/src/main.js b/src/main.js
+index b09ec18..97cfaed 100644
+--- a/src/main.js
++++ b/src/main.js
+@@ -1,5 +1,6 @@
+ import { createStandaloneApplication } from './standalone/application.js';
+ import { describeError } from './standalone/errors.js';
++import './ocean/index.js'; // ocean view + exploration submarine
+ 
+ const application = createStandaloneApplication({
+   googleApiKey: import.meta.env.GOOGLE_MAPS_API_KEY,
+diff --git a/src/ocean/index.js b/src/ocean/index.js
+new file mode 100644
+index 0000000..8e9c3cd
+--- /dev/null
++++ b/src/ocean/index.js
+@@ -0,0 +1,20 @@
++/**
++ * Boots the ocean module once the application's Cesium viewer exists
++ * (src/app/viewer.js publishes it as window.__gevViewer).
++ */
++import './ocean.css';
++import { mountOcean } from './oceanRuntime.js';
++
++const TOKEN = import.meta.env.CESIUM_ION_TOKEN;
++
++function whenViewer(cb, tries = 0) {
++  const viewer = window.__gevViewer;
++  if (viewer && !viewer.isDestroyed?.()) return cb(viewer);
++  if (tries > 600) {
++    console.warn('[GEV ocean] viewer not found; ocean module idle');
++    return;
++  }
++  setTimeout(() => whenViewer(cb, tries + 1), 250);
++}
++
++whenViewer((viewer) => mountOcean(viewer, { ionToken: TOKEN }));
+diff --git a/src/ocean/ocean.css b/src/ocean/ocean.css
+new file mode 100644
+index 0000000..5d85348
+--- /dev/null
++++ b/src/ocean/ocean.css
+@@ -0,0 +1,128 @@
++/* Ocean view + exploration submarine (src/ocean) — desktop layout.
++   Positions are set at runtime above #command-dock; these are fallbacks. */
++.gev-ocean-dock {
++  position: fixed;
++  right: 0.9rem;
++  bottom: 4.5rem;
++  z-index: 146;
++  display: flex;
++  gap: 6px;
++  align-items: stretch;
++  font:
++    12px/1.2 ui-monospace,
++    'JetBrains Mono',
++    monospace;
++}
++.gev-ocean-dock button,
++.gev-ocean-dock select,
++.gev-subhud button {
++  padding: 6px 10px;
++  font: inherit;
++  color: #bfefff;
++  cursor: pointer;
++  background: rgba(9, 18, 27, 0.84);
++  border: 1px solid rgba(123, 189, 211, 0.28);
++  border-radius: 8px;
++  backdrop-filter: blur(16px);
++  -webkit-backdrop-filter: blur(16px);
++}
++.gev-ocean-dock button:hover,
++.gev-subhud button:hover {
++  border-color: #3ee6ff;
++}
++.gev-ocean-dock button.on,
++.gev-subhud button.on {
++  color: #fff;
++  background: rgba(62, 230, 255, 0.22);
++  border-color: #3ee6ff;
++}
++.gev-ocean-dock select {
++  max-width: 150px;
++}
++body.ui-clean-view .gev-ocean-dock,
++body.recording-mode .gev-ocean-dock,
++body.ui-clean-view .gev-subhud {
++  display: none;
++}
++.gev-underwater {
++  position: absolute;
++  inset: 0;
++  z-index: 1;
++  pointer-events: none;
++  background: radial-gradient(
++    ellipse at center,
++    rgba(0, 70, 110, 0.35) 0%,
++    rgba(0, 20, 40, 0.9) 75%,
++    #000 100%
++  );
++  mix-blend-mode: multiply;
++  opacity: 0;
++  transition: opacity 0.4s;
++}
++.gev-subhud {
++  position: fixed;
++  bottom: 8rem;
++  left: 50%;
++  z-index: 146;
++  width: min(600px, calc(100% - 32px));
++  padding: 10px 12px;
++  font:
++    12px/1.3 ui-monospace,
++    'JetBrains Mono',
++    monospace;
++  color: #e6f3ff;
++  background: rgba(9, 18, 27, 0.88);
++  border: 1px solid rgba(123, 189, 211, 0.28);
++  border-radius: 12px;
++  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.58);
++  backdrop-filter: blur(28px) saturate(1.35);
++  -webkit-backdrop-filter: blur(28px) saturate(1.35);
++  transform: translateX(-50%);
++}
++.gev-subhud[hidden] {
++  display: none;
++}
++.gev-subhud-grid {
++  display: grid;
++  grid-template-columns: repeat(6, auto);
++  gap: 4px 16px;
++}
++.gev-subhud-grid small {
++  display: block;
++  letter-spacing: 0.08em;
++  opacity: 0.6;
++}
++.gev-subhud-grid b {
++  font-size: 14px;
++  color: #3ee6ff;
++  white-space: nowrap;
++}
++.gev-subhud-alert {
++  margin-top: 6px;
++  color: #ffb02e;
++}
++.gev-subhud-pad {
++  display: grid;
++  grid-template-columns: repeat(8, 1fr);
++  gap: 4px;
++  margin-top: 8px;
++  touch-action: none;
++}
++.gev-subhud-pad button {
++  padding: 6px 4px;
++  user-select: none;
++  -webkit-user-select: none;
++}
++.gev-subhud-keys {
++  display: block;
++  margin-top: 6px;
++  opacity: 0.6;
++}
++@media (max-width: 900px) {
++  .gev-subhud-grid {
++    grid-template-columns: repeat(3, 1fr);
++  }
++  .gev-subhud-pad {
++    grid-template-columns: repeat(4, 1fr);
++  }
++}
+diff --git a/src/ocean/oceanRuntime.js b/src/ocean/oceanRuntime.js
+new file mode 100644
+index 0000000..e5e3a8b
+--- /dev/null
++++ b/src/ocean/oceanRuntime.js
+@@ -0,0 +1,574 @@
++/**
++ * Ocean view + pilotable exploration submarine for Gid's Eye View.
++ *
++ * - Ocean view: Cesium World Bathymetry terrain (ion asset 2426648, needs the
++ *   Cesium ion token) + keyless GEBCO WMS shaded relief. Google 3D tiles are
++ *   hidden while it is on and restored afterwards.
++ * - Submarine: simulation over public bathymetry. Keys (captured only while the
++ *   sub is active, so app shortcuts F/D/C are untouched otherwise):
++ *     W/S throttle · A/D steer · Q rise · E dive · Shift explore speed · X camera
++ *   Space is left to push-to-talk voice.
++ *
++ * Public API: window.__gevOcean (used by the voice action `control_ocean`).
++ */
++import * as Cesium from 'cesium';
++import {
++  stepSub,
++  lightAtDepth,
++  zoneName,
++  DIVE_SITES,
++  findDiveSite,
++} from './subPhysics.js';
++
++export const BATHYMETRY_ASSET_ID = 2426648;
++const GEBCO_WMS = 'https://wms.gebco.net/mapserv';
++const SUB_KEYS = new Set([
++  'KeyW',
++  'KeyA',
++  'KeyS',
++  'KeyD',
++  'KeyQ',
++  'KeyE',
++  'KeyX',
++  'ShiftLeft',
++  'ShiftRight',
++  'ArrowUp',
++  'ArrowDown',
++  'ArrowLeft',
++  'ArrowRight',
++]);
++
++/** Ocean view: seafloor terrain + GEBCO relief, 3D tiles hidden. */
++export class OceanView {
++  constructor(viewer, { ionToken } = {}) {
++    this.viewer = viewer;
++    this.ionToken = ionToken || Cesium.Ion.defaultAccessToken || '';
++    this.active = false;
++    this.bathy = null;
++    this.gebco = null;
++    this.saved = null;
++  }
++
++  hasBathymetry() {
++    return !!this.bathy;
++  }
++
++  async enable() {
++    if (this.active) return;
++    const v = this.viewer;
++    const sc = v.scene;
++    const tilesets = [];
++    for (let i = 0; i < sc.primitives.length; i++) {
++      const p = sc.primitives.get(i);
++      if (p instanceof Cesium.Cesium3DTileset) tilesets.push([p, p.show]);
++    }
++    this.saved = {
++      terrain: v.terrainProvider,
++      globeShow: sc.globe.show,
++      depthTest: sc.globe.depthTestAgainstTerrain,
++      lighting: sc.globe.enableLighting,
++      tilesets,
++    };
++    if (!this.bathy && this.ionToken) {
++      try {
++        this.bathy = await Cesium.CesiumTerrainProvider.fromIonAssetId(
++          BATHYMETRY_ASSET_ID,
++          {
++            requestVertexNormals: true,
++            accessToken: this.ionToken,
++          },
++        );
++      } catch (err) {
++        console.warn(
++          '[GEV ocean] bathymetry asset unavailable - add "Cesium World Bathymetry" to My Assets in Cesium ion',
++          err,
++        );
++      }
++    }
++    if (this.bathy) v.terrainProvider = this.bathy;
++    if (!this.gebco) {
++      this.gebco = v.imageryLayers.addImageryProvider(
++        new Cesium.WebMapServiceImageryProvider({
++          url: GEBCO_WMS,
++          layers: 'GEBCO_LATEST',
++          parameters: { format: 'image/png', transparent: true },
++          credit: 'Bathymetry: GEBCO Compilation Group',
++        }),
++      );
++    }
++    this.gebco.show = true;
++    this.gebco.alpha = 0.9;
++    for (const [t] of tilesets) t.show = false;
++    sc.globe.show = true;
++    sc.globe.depthTestAgainstTerrain = true;
++    sc.globe.enableLighting = true;
++    this.active = true;
++  }
++
++  disable() {
++    if (!this.active || !this.saved) return;
++    const v = this.viewer;
++    const sc = v.scene;
++    v.terrainProvider = this.saved.terrain;
++    sc.globe.show = this.saved.globeShow;
++    sc.globe.depthTestAgainstTerrain = this.saved.depthTest;
++    sc.globe.enableLighting = this.saved.lighting;
++    for (const [t, show] of this.saved.tilesets)
++      if (!t.isDestroyed()) t.show = show;
++    if (this.gebco) this.gebco.show = false;
++    this.active = false;
++  }
++}
++
++/** Seafloor depth (positive m) at a point from current terrain; null if unknown. */
++export async function sampleSeafloor(viewer, lat, lon) {
++  try {
++    const [c] = await Cesium.sampleTerrainMostDetailed(viewer.terrainProvider, [
++      Cesium.Cartographic.fromDegrees(lon, lat),
++    ]);
++    return c.height == null || Number.isNaN(c.height) ? null : -c.height;
++  } catch {
++    return null;
++  }
++}
++
++/** Pilotable exploration submarine. */
++export class Submarine {
++  constructor(viewer, start, { onTelemetry } = {}) {
++    this.viewer = viewer;
++    this.state = {
++      lat: start.lat,
++      lon: start.lon,
++      depth: 0,
++      heading: 0,
++      speed: 0,
++      vSpeed: 0,
++    };
++    this.input = { throttle: 0, rudder: 0, ballast: 0, boost: false };
++    this.keys = new Set();
++    this.trail = [];
++    this.floor = null;
++    this.sampling = false;
++    this.lastSample = 0;
++    this.lastFrame = 0;
++    this.camMode = 'chase';
++    this.diveTarget = null;
++    this.onTelemetry = onTelemetry;
++    this.cleanup = [];
++
++    const position = () => this.cartesian();
++    this.entity = viewer.entities.add({
++      id: 'gev-exploration-submarine',
++      name: 'Exploration submarine (simulation)',
++      position: new Cesium.CallbackProperty(position, false),
++      orientation: new Cesium.CallbackProperty(
++        () =>
++          Cesium.Transforms.headingPitchRollQuaternion(
++            this.cartesian(),
++            new Cesium.HeadingPitchRoll(
++              Cesium.Math.toRadians(this.state.heading - 90),
++              0,
++              0,
++            ),
++          ),
++        false,
++      ),
++      ellipsoid: {
++        radii: new Cesium.Cartesian3(22, 4, 4),
++        material: Cesium.Color.fromCssColorString('#ffcc33'),
++      },
++      polyline: {
++        positions: new Cesium.CallbackProperty(() => this.trail, false),
++        width: 2,
++        material: Cesium.Color.CYAN.withAlpha(0.7),
++      },
++    });
++
++    this.overlay = document.createElement('div');
++    this.overlay.className = 'gev-underwater';
++    (viewer.container || document.body).appendChild(this.overlay);
++
++    // Capture phase on window runs before the app's document listeners.
++    const isTyping = (e) =>
++      e.target?.matches?.('input, textarea, select, [contenteditable="true"]');
++    const down = (e) => {
++      if (
++        isTyping(e) ||
++        !SUB_KEYS.has(e.code) ||
++        e.metaKey ||
++        e.ctrlKey ||
++        e.altKey
++      )
++        return;
++      e.preventDefault();
++      e.stopImmediatePropagation();
++      this.keys.add(e.code);
++      if (e.code === 'KeyX' && !e.repeat) this.cycleCamera();
++    };
++    const up = (e) => {
++      if (SUB_KEYS.has(e.code)) {
++        this.keys.delete(e.code);
++        e.stopImmediatePropagation();
++      }
++    };
++    const blur = () => this.keys.clear();
++    window.addEventListener('keydown', down, true);
++    window.addEventListener('keyup', up, true);
++    window.addEventListener('blur', blur);
++    this.cleanup.push(() => {
++      window.removeEventListener('keydown', down, true);
++      window.removeEventListener('keyup', up, true);
++      window.removeEventListener('blur', blur);
++    });
++
++    const remove = viewer.scene.preRender.addEventListener(() => this.tick());
++    this.cleanup.push(remove);
++  }
++
++  cartesian() {
++    return Cesium.Cartesian3.fromDegrees(
++      this.state.lon,
++      this.state.lat,
++      -this.state.depth,
++    );
++  }
++
++  readInput() {
++    const k = this.keys;
++    const has = (...c) => c.some((x) => k.has(x));
++    const ballastKeys = has('KeyE') ? 1 : has('KeyQ') ? -1 : 0;
++    let ballast = ballastKeys || this.input.ballast;
++    if (this.diveTarget != null && !ballastKeys) {
++      const d = this.diveTarget - this.state.depth;
++      if (Math.abs(d) < 3) this.diveTarget = null;
++      ballast = this.diveTarget == null ? 0 : Math.sign(d);
++    }
++    return {
++      throttle:
++        (has('KeyW', 'ArrowUp') ? 1 : has('KeyS', 'ArrowDown') ? -0.3 : 0) ||
++        this.input.throttle,
++      rudder:
++        (has('KeyD', 'ArrowRight') ? 1 : has('KeyA', 'ArrowLeft') ? -1 : 0) ||
++        this.input.rudder,
++      ballast,
++      boost: has('ShiftLeft', 'ShiftRight') || this.input.boost,
++    };
++  }
++
++  tick() {
++    const now = performance.now();
++    const dt = this.lastFrame
++      ? Math.min((now - this.lastFrame) / 1000, 0.1)
++      : 0;
++    this.lastFrame = now;
++    if (dt <= 0) return;
++
++    if (!this.sampling && now - this.lastSample > 500) {
++      this.sampling = true;
++      this.lastSample = now;
++      sampleSeafloor(this.viewer, this.state.lat, this.state.lon).then((f) => {
++        this.floor = f;
++        this.sampling = false;
++      });
++    }
++
++    const { blocked, ...next } = stepSub(
++      this.state,
++      this.readInput(),
++      dt,
++      this.floor,
++    );
++    this.state = next;
++
++    const p = this.cartesian();
++    const last = this.trail[this.trail.length - 1];
++    if (!last || Cesium.Cartesian3.distance(last, p) > 50) {
++      this.trail.push(p);
++      if (this.trail.length > 2000) this.trail.shift();
++    }
++    this.updateCamera(p);
++    const light = lightAtDepth(next.depth);
++    this.applyUnderwater(light);
++    this.onTelemetry?.({
++      ...next,
++      floor: this.floor,
++      blocked,
++      light,
++      zone: zoneName(next.depth),
++      camMode: this.camMode,
++      boost: !!this.input.boost,
++    });
++  }
++
++  applyUnderwater(light) {
++    const sc = this.viewer.scene;
++    const under = this.state.depth > 0.5;
++    this.overlay.style.opacity = under ? String(0.25 + (1 - light) * 0.7) : '0';
++    sc.fog.enabled = true;
++    sc.fog.density = under ? 2e-3 * (2 - light) : 2e-4;
++    if (sc.skyAtmosphere) sc.skyAtmosphere.show = !under;
++  }
++
++  cycleCamera() {
++    this.camMode =
++      this.camMode === 'chase'
++        ? 'cockpit'
++        : this.camMode === 'cockpit'
++          ? 'free'
++          : 'chase';
++    if (this.camMode !== 'chase')
++      this.viewer.camera.lookAtTransform(Cesium.Matrix4.IDENTITY);
++  }
++
++  updateCamera(p) {
++    const cam = this.viewer.camera;
++    const h = Cesium.Math.toRadians(this.state.heading);
++    if (this.camMode === 'chase') {
++      cam.lookAt(
++        p,
++        new Cesium.HeadingPitchRange(h, Cesium.Math.toRadians(-12), 140),
++      );
++    } else if (this.camMode === 'cockpit') {
++      cam.setView({
++        destination: p,
++        orientation: { heading: h, pitch: Cesium.Math.toRadians(-5), roll: 0 },
++      });
++    }
++  }
++
++  teleport(lat, lon, depth = 0) {
++    this.state = { ...this.state, lat, lon, depth, speed: 0, vSpeed: 0 };
++    this.trail = [];
++    this.floor = null;
++  }
++
++  destroy() {
++    this.cleanup.forEach((fn) => fn());
++    this.viewer.entities.remove(this.entity);
++    this.viewer.camera.lookAtTransform(Cesium.Matrix4.IDENTITY);
++    this.overlay.remove();
++    const sc = this.viewer.scene;
++    if (sc.skyAtmosphere) sc.skyAtmosphere.show = true;
++    sc.fog.density = 2e-4;
++  }
++}
++
++const fmt = (n, d = 0) =>
++  Number(n).toLocaleString(undefined, {
++    maximumFractionDigits: d,
++    minimumFractionDigits: d,
++  });
++
++/** Mount the ocean dock + HUD and expose window.__gevOcean. */
++export function mountOcean(viewer, { ionToken } = {}) {
++  const ocean = new OceanView(viewer, { ionToken });
++  let sub = null;
++
++  const dock = document.createElement('div');
++  dock.className = 'gev-ocean-dock';
++  dock.innerHTML = `
++    <button type="button" data-act="ocean" title="Ocean view: seafloor bathymetry">🌊 Ocean</button>
++    <button type="button" data-act="sub" title="Launch the exploration submarine">🛥 Sub</button>
++    <select data-act="site" title="Jump to a dive site"><option value="">Dive site…</option>${Object.entries(
++      DIVE_SITES,
++    )
++      .map(([k, s]) => `<option value="${k}" title="${s.note}">${k}</option>`)
++      .join('')}</select>`;
++  document.body.appendChild(dock);
++
++  const hud = document.createElement('div');
++  hud.className = 'gev-subhud';
++  hud.hidden = true;
++  hud.innerHTML = `
++    <div class="gev-subhud-grid">
++      <div><small>DEPTH</small><b data-k="depth">0 m</b></div>
++      <div><small>SEAFLOOR</small><b data-k="floor">—</b></div>
++      <div><small>HEADING</small><b data-k="heading">0°</b></div>
++      <div><small>SPEED</small><b data-k="speed">0 kn</b></div>
++      <div><small>POSITION</small><b data-k="pos">—</b></div>
++      <div><small>ZONE</small><b data-k="zone">Surface</b></div>
++    </div>
++    <div class="gev-subhud-alert" data-k="alert" hidden></div>
++    <div class="gev-subhud-pad">
++      <button type="button" data-hold="throttle:1">▲ Fwd</button>
++      <button type="button" data-hold="rudder:-1">◀</button>
++      <button type="button" data-hold="rudder:1">▶</button>
++      <button type="button" data-hold="throttle:-0.3">▼ Rev</button>
++      <button type="button" data-hold="ballast:-1">⇡ Rise</button>
++      <button type="button" data-hold="ballast:1">⇣ Dive</button>
++      <button type="button" data-act="boost">⚡ Explore</button>
++      <button type="button" data-act="cam">🎥 chase</button>
++    </div>
++    <small class="gev-subhud-keys">W/S throttle · A/D steer · Q/E rise/dive · Shift explore · X camera · Space still talks</small>`;
++  document.body.appendChild(hud);
++  const q = (k) => hud.querySelector(`[data-k="${k}"]`);
++
++  // Desktop layout: sit just above the bottom command dock, right-aligned with
++  // it, so nothing overlaps the right-rail panels, mic pill or provider chip.
++  // Falls back to the CSS bottom-right position when there is no dock.
++  const GAP = 8;
++  const place = () => {
++    const anchor = document.getElementById('command-dock');
++    const r = anchor?.getBoundingClientRect();
++    if (!r || !r.height || window.getComputedStyle(anchor).visibility === 'hidden') {
++      dock.style.bottom = dock.style.right = hud.style.bottom = '';
++      return;
++    }
++    const bottom = Math.max(GAP, window.innerHeight - r.top + GAP);
++    dock.style.bottom = `${bottom}px`;
++    dock.style.right = `${Math.max(GAP, window.innerWidth - r.right)}px`;
++    hud.style.bottom = `${bottom + dock.offsetHeight + GAP}px`;
++  };
++  const placeTimer = setInterval(place, 1000);
++  window.addEventListener('resize', place);
++  if (typeof ResizeObserver === 'function') {
++    const ro = new ResizeObserver(place);
++    const watch = () => {
++      const a = document.getElementById('command-dock');
++      if (a) ro.observe(a);
++      else setTimeout(watch, 1000);
++    };
++    watch();
++  }
++  place();
++  void placeTimer;
++
++  const render = (t) => {
++    q('depth').textContent = `${fmt(t.depth)} m`;
++    q('floor').textContent =
++      t.floor == null ? '—' : t.floor <= 0 ? 'LAND' : `${fmt(t.floor)} m`;
++    q('heading').textContent = `${fmt(t.heading)}°`;
++    q('speed').textContent = `${fmt(t.speed * 1.944, 1)} kn`;
++    q('pos').textContent = `${fmt(t.lat, 3)}, ${fmt(t.lon, 3)}`;
++    q('zone').textContent = t.zone;
++    hud.querySelector('[data-act="cam"]').textContent = `🎥 ${t.camMode}`;
++    hud.querySelector('[data-act="boost"]').classList.toggle('on', t.boost);
++    const alert = q('alert');
++    const msg = t.blocked
++      ? '⚠ SHALLOW / LAND - turn away'
++      : !ocean.hasBathymetry()
++        ? 'No bathymetry terrain: depth limit 10,935 m everywhere. Add "Cesium World Bathymetry" in Cesium ion.'
++        : '';
++    alert.hidden = !msg;
++    alert.textContent = msg;
++  };
++
++  const syncButtons = () => {
++    dock
++      .querySelector('[data-act="ocean"]')
++      .classList.toggle('on', ocean.active);
++    dock.querySelector('[data-act="sub"]').classList.toggle('on', !!sub);
++    hud.hidden = !sub;
++    place();
++  };
++
++  const api = {
++    get oceanActive() {
++      return ocean.active;
++    },
++    get subActive() {
++      return !!sub;
++    },
++    async setOcean(on) {
++      if (on) await ocean.enable();
++      else {
++        api.recallSub();
++        ocean.disable();
++      }
++      syncButtons();
++      return {
++        ok: true,
++        ocean: ocean.active,
++        bathymetry: ocean.hasBathymetry(),
++      };
++    },
++    async launchSub(at) {
++      if (!ocean.active) await api.setOcean(true);
++      viewer.trackedEntity = undefined;
++      if (!sub) {
++        let start = at;
++        if (!start) {
++          const c = Cesium.Cartographic.fromCartesian(viewer.camera.positionWC);
++          start = {
++            lat: Cesium.Math.toDegrees(c.latitude),
++            lon: Cesium.Math.toDegrees(c.longitude),
++          };
++        }
++        sub = new Submarine(viewer, start, { onTelemetry: render });
++      } else if (at) sub.teleport(at.lat, at.lon);
++      syncButtons();
++      return { ok: true, sub: true, ...api.status() };
++    },
++    recallSub() {
++      sub?.destroy();
++      sub = null;
++      syncButtons();
++      return { ok: true, sub: false };
++    },
++    async diveTo(depth) {
++      await api.launchSub();
++      sub.diveTarget = Number.isFinite(depth)
++        ? Math.max(0, depth)
++        : sub.state.depth + 100;
++      return { ok: true, targetDepth: sub.diveTarget };
++    },
++    surface() {
++      if (!sub) return { ok: false, error: 'Submarine is not launched.' };
++      sub.diveTarget = 0;
++      return { ok: true, targetDepth: 0 };
++    },
++    async goToSite(text) {
++      const site = findDiveSite(text);
++      if (!site)
++        return {
++          ok: false,
++          error: `Unknown dive site. Known: ${Object.keys(DIVE_SITES).join(', ')}`,
++        };
++      await api.launchSub({ lat: site.lat, lon: site.lon });
++      return { ok: true, site: site.key, note: site.note };
++    },
++    status() {
++      if (!sub) return { ocean: ocean.active, sub: false };
++      const s = sub.state;
++      return {
++        ocean: ocean.active,
++        sub: true,
++        lat: +s.lat.toFixed(4),
++        lon: +s.lon.toFixed(4),
++        depthM: Math.round(s.depth),
++        headingDeg: Math.round(s.heading),
++        speedKn: +(s.speed * 1.944).toFixed(1),
++        seafloorM: sub.floor == null ? null : Math.round(sub.floor),
++        zone: zoneName(s.depth),
++      };
++    },
++  };
++
++  dock.addEventListener('click', (e) => {
++    const act = e.target.closest('[data-act]')?.dataset.act;
++    if (act === 'ocean') api.setOcean(!ocean.active);
++    if (act === 'sub') sub ? api.recallSub() : api.launchSub();
++  });
++  dock.querySelector('select').addEventListener('change', (e) => {
++    if (e.target.value) api.goToSite(e.target.value);
++    e.target.value = '';
++  });
++  hud.addEventListener('click', (e) => {
++    const act = e.target.closest('[data-act]')?.dataset.act;
++    if (!sub) return;
++    if (act === 'boost') sub.input.boost = !sub.input.boost;
++    if (act === 'cam') sub.cycleCamera();
++  });
++  for (const btn of hud.querySelectorAll('[data-hold]')) {
++    const [axis, val] = btn.dataset.hold.split(':');
++    const set = (v) => () => {
++      if (sub) sub.input[axis] = v;
++    };
++    btn.addEventListener('pointerdown', set(Number(val)));
++    for (const ev of ['pointerup', 'pointerleave', 'pointercancel'])
++      btn.addEventListener(ev, set(0));
++  }
++
++  window.__gevOcean = api;
++  return api;
++}
+diff --git a/src/ocean/subPhysics.js b/src/ocean/subPhysics.js
+new file mode 100644
+index 0000000..ad92caf
+--- /dev/null
++++ b/src/ocean/subPhysics.js
+@@ -0,0 +1,149 @@
++/**
++ * Exploration submarine physics. Pure and framework-free (no Cesium, no DOM)
++ * so it runs under `node --test`.
++ *
++ * Kinematic model: throttle -> speed (with drag), rudder -> yaw rate scaled by
++ * speed, ballast -> vertical speed. Position integrates along great circles.
++ * Depth is clamped between the surface and the seafloor (from bathymetry),
++ * keeping a safety margin above the bottom. Land/shallows block movement.
++ */
++
++/** @typedef {{lat:number, lon:number, depth:number, heading:number, speed:number, vSpeed:number}} SubState */
++/** @typedef {{throttle:number, rudder:number, ballast:number, boost?:boolean}} SubInput */
++
++export const SUB_LIMITS = Object.freeze({
++  maxSpeed: 12, // m/s (~23 kn)
++  boostMultiplier: 40, // "explore" speed, crosses ocean basins in minutes
++  accel: 1.5, // m/s²
++  drag: 0.25, // 1/s
++  turnRate: 18, // deg/s at full rudder and full speed
++  maxVSpeed: 5, // m/s
++  maxDepth: 10_935, // Challenger Deep
++  floorClearance: 15, // m kept above the seabed
++});
++
++const EARTH_RADIUS = 6_371_000;
++const D2R = Math.PI / 180;
++
++/** Clamp `v` into [lo, hi]. */
++export function clamp(v, lo, hi) {
++  return Math.min(hi, Math.max(lo, v));
++}
++
++/**
++ * Destination point along a great circle.
++ * @returns {{lat:number, lon:number}} lon normalised to [-180, 180).
++ */
++export function moveOnSphere(lat, lon, headingDeg, distanceM) {
++  const p1 = lat * D2R;
++  const l1 = lon * D2R;
++  const th = headingDeg * D2R;
++  const d = distanceM / EARTH_RADIUS;
++  const p2 = Math.asin(
++    Math.sin(p1) * Math.cos(d) + Math.cos(p1) * Math.sin(d) * Math.cos(th),
++  );
++  const l2 =
++    l1 +
++    Math.atan2(
++      Math.sin(th) * Math.sin(d) * Math.cos(p1),
++      Math.cos(d) - Math.sin(p1) * Math.sin(p2),
++    );
++  return { lat: p2 / D2R, lon: ((((l2 / D2R + 540) % 360) + 360) % 360) - 180 };
++}
++
++/**
++ * Advance one step.
++ * @param {SubState} s
++ * @param {SubInput} input each axis -1..1
++ * @param {number} dt seconds
++ * @param {number|null} seafloorDepth seabed depth (positive m) at the current
++ *   position, or null if unknown. A value <= floorClearance means land or
++ *   shallows: horizontal movement is blocked.
++ * @returns {SubState & {blocked:boolean}}
++ */
++export function stepSub(s, input, dt, seafloorDepth = null) {
++  const L = SUB_LIMITS;
++  const mult = input.boost ? L.boostMultiplier : 1;
++  const target = clamp(input.throttle, -0.3, 1) * L.maxSpeed * mult;
++  const accel = L.accel * dt * mult;
++  let speed = s.speed + clamp(target - s.speed, -accel, accel);
++  if (!input.throttle) speed -= speed * L.drag * dt;
++
++  const turnFactor = clamp(Math.abs(speed) / L.maxSpeed, 0.15, 1);
++  const heading =
++    (((s.heading + clamp(input.rudder, -1, 1) * L.turnRate * turnFactor * dt) %
++      360) +
++      360) %
++    360;
++
++  const vTarget = clamp(input.ballast, -1, 1) * L.maxVSpeed;
++  const vSpeed = s.vSpeed + clamp(vTarget - s.vSpeed, -2 * dt, 2 * dt);
++
++  const blocked = seafloorDepth !== null && seafloorDepth <= L.floorClearance;
++  const pos = blocked
++    ? { lat: s.lat, lon: s.lon }
++    : moveOnSphere(s.lat, s.lon, heading, speed * dt);
++
++  const floor =
++    seafloorDepth !== null && seafloorDepth > 0
++      ? Math.min(seafloorDepth, L.maxDepth)
++      : L.maxDepth;
++  const bottom = Math.max(0, floor - L.floorClearance);
++  const depth = clamp(s.depth + vSpeed * dt, 0, bottom);
++
++  return {
++    ...pos,
++    depth,
++    heading,
++    speed: blocked ? 0 : speed,
++    vSpeed: depth === 0 || depth === bottom ? 0 : vSpeed,
++    blocked,
++  };
++}
++
++/** Light reaching `depth` metres (0..1); drives the underwater tint. */
++export function lightAtDepth(depth) {
++  if (depth <= 0) return 1;
++  return clamp(Math.exp(-depth / 120), 0.02, 1);
++}
++
++/** Oceanographic zone name for a depth in metres. */
++export function zoneName(depth) {
++  if (depth < 1) return 'Surface';
++  if (depth < 200) return 'Sunlight zone';
++  if (depth < 1000) return 'Twilight zone';
++  if (depth < 4000) return 'Midnight zone';
++  if (depth < 6000) return 'Abyssal zone';
++  return 'Hadal zone';
++}
++
++/** Notable dive sites for quick travel. */
++export const DIVE_SITES = Object.freeze({
++  'challenger deep': {
++    lat: 11.3733,
++    lon: 142.5917,
++    note: 'Deepest known point, Mariana Trench (~10,935 m)',
++  },
++  'philippine trench': {
++    lat: 10.4,
++    lon: 126.7,
++    note: 'Emden Deep (~10,540 m)',
++  },
++  tubbataha: { lat: 8.95, lon: 119.9, note: 'UNESCO reef, Sulu Sea' },
++  'cebu strait': { lat: 10.25, lon: 123.95, note: 'Between Cebu and Bohol' },
++  'great barrier reef': { lat: -18.29, lon: 147.7, note: 'Coral Sea' },
++  'mid-atlantic ridge': { lat: 30.0, lon: -42.0, note: 'Spreading ridge' },
++  titanic: { lat: 41.7325, lon: -49.9469, note: 'Wreck site (~3,800 m)' },
++  'puerto rico trench': {
++    lat: 19.77,
++    lon: -66.92,
++    note: 'Deepest Atlantic point',
++  },
++});
++
++/** Find a dive site by free text ("take me to the challenger deep"). */
++export function findDiveSite(text) {
++  const t = String(text || '').toLowerCase();
++  const key = Object.keys(DIVE_SITES).find((k) => t.includes(k));
++  return key ? { key, ...DIVE_SITES[key] } : null;
++}
+diff --git a/src/ocean/subPhysics.test.mjs b/src/ocean/subPhysics.test.mjs
+new file mode 100644
+index 0000000..8b6f3e8
+--- /dev/null
++++ b/src/ocean/subPhysics.test.mjs
+@@ -0,0 +1,99 @@
++import test from 'node:test';
++import assert from 'node:assert/strict';
++import {
++  stepSub,
++  moveOnSphere,
++  lightAtDepth,
++  zoneName,
++  findDiveSite,
++  SUB_LIMITS,
++} from './subPhysics.js';
++
++const base = { lat: 10, lon: 124, depth: 100, heading: 0, speed: 0, vSpeed: 0 };
++const run = (s, input, secs, floor = 5000) => {
++  let x = s;
++  for (let i = 0; i < secs * 10; i++) x = stepSub(x, input, 0.1, floor);
++  return x;
++};
++const near = (a, b, eps) => assert.ok(Math.abs(a - b) <= eps, `${a} ≉ ${b}`);
++
++test('moveOnSphere goes ~1° north per 111 km', () => {
++  const p = moveOnSphere(0, 0, 0, 111_195);
++  near(p.lat, 1, 0.01);
++  near(p.lon, 0, 1e-6);
++});
++
++test('moveOnSphere wraps across the antimeridian', () => {
++  assert.ok(moveOnSphere(0, 179.9, 90, 30_000).lon < -179);
++});
++
++test('sub accelerates to but not past max speed', () => {
++  const s = run(base, { throttle: 1, rudder: 0, ballast: 0 }, 30);
++  near(s.speed, SUB_LIMITS.maxSpeed, 0.05);
++  assert.ok(s.lat > base.lat);
++});
++
++test('explore boost is much faster', () => {
++  const s = run(base, { throttle: 1, rudder: 0, ballast: 0, boost: true }, 30);
++  assert.ok(s.speed > SUB_LIMITS.maxSpeed * 10);
++});
++
++test('positive rudder turns right', () => {
++  const s = run(
++    { ...base, speed: 12 },
++    { throttle: 1, rudder: 1, ballast: 0 },
++    2,
++  );
++  assert.ok(s.heading > 20 && s.heading < 60, String(s.heading));
++});
++
++test('never rises above the surface', () => {
++  assert.equal(
++    run(base, { throttle: 0, rudder: 0, ballast: -1 }, 120).depth,
++    0,
++  );
++});
++
++test('stops above the seafloor with clearance', () => {
++  const s = run(base, { throttle: 0, rudder: 0, ballast: 1 }, 300, 400);
++  assert.equal(s.depth, 400 - SUB_LIMITS.floorClearance);
++});
++
++test('land blocks horizontal movement', () => {
++  const s = stepSub(
++    { ...base, speed: 10 },
++    { throttle: 1, rudder: 0, ballast: 0 },
++    1,
++    -50,
++  );
++  assert.equal(s.blocked, true);
++  assert.equal(s.lat, base.lat);
++  assert.equal(s.speed, 0);
++});
++
++test('depth is capped at Challenger Deep when the floor is unknown', () => {
++  const s = run(
++    { ...base, depth: 10_900 },
++    { throttle: 0, rudder: 0, ballast: 1 },
++    60,
++    null,
++  );
++  assert.ok(s.depth <= SUB_LIMITS.maxDepth);
++});
++
++test('light fades with depth and zones are named', () => {
++  assert.equal(lightAtDepth(0), 1);
++  assert.ok(lightAtDepth(500) < 0.05);
++  assert.equal(zoneName(0), 'Surface');
++  assert.equal(zoneName(50), 'Sunlight zone');
++  assert.equal(zoneName(10_000), 'Hadal zone');
++});
++
++test('dive sites resolve from free text', () => {
++  assert.equal(
++    findDiveSite('take me to the Challenger Deep').key,
++    'challenger deep',
++  );
++  assert.equal(findDiveSite('sail to tubbataha reef').key, 'tubbataha');
++  assert.equal(findDiveSite('mars'), null);
++});
+diff --git a/src/radioMarkup.test.mjs b/src/radioMarkup.test.mjs
+index 97d00eb..3bc4671 100644
+--- a/src/radioMarkup.test.mjs
++++ b/src/radioMarkup.test.mjs
+@@ -27,9 +27,11 @@ function realtimeTools() { return GEV_REALTIME_TOOLS; }
+ 
+ test('Realtime schema exposes the authoritative 30-tool inventory', () => {
+   const tools = realtimeTools();
+-  assert.equal(tools.length, 30);
++  // 30 shipped tools + the additive ocean/submarine tool (control_ocean).
++  assert.equal(tools.length, 31);
+   const names = tools.map((tool) => tool.name);
+-  assert.equal(new Set(names).size, 30, 'tool names are unique');
++  assert.equal(new Set(names).size, 31, 'tool names are unique');
++  assert.ok(names.includes('control_ocean'));
+   assert.ok(names.includes('set_context_mode'));
+   assert.ok(names.includes('control_cockpit'));
+   assert.ok(names.includes('select_nearest_aircraft'));
+@@ -186,6 +188,8 @@ test('no unchanged Realtime tool definition drifts silently', () => {
+     'next_satellite_pass',
+     // Local ADS-B adds one layer enum value and its common-name mapping.
+     'set_layer_visibility',
++    // Additive: ocean view + exploration submarine (src/ocean).
++    'control_ocean',
+   ]);
+   const unchanged = realtimeTools()
+     .filter((tool) => !TOUCHED.has(tool.name))
+diff --git a/src/voice/actionSchemas.js b/src/voice/actionSchemas.js
+index c18b3c7..6f79f40 100644
+--- a/src/voice/actionSchemas.js
++++ b/src/voice/actionSchemas.js
+@@ -899,6 +899,22 @@ const schemas = [
+       },
+     },
+   },
++  {
++    name: 'control_ocean',
++    parameters: {
++      type: 'object',
++      additionalProperties: false,
++      required: ['action'],
++      properties: {
++        action: {
++          type: 'string',
++          enum: ['ocean_on', 'ocean_off', 'launch_sub', 'recall_sub', 'dive', 'surface', 'go_to_site', 'status'],
++        },
++        depthM: { type: 'number', minimum: 0, maximum: 10935 },
++        site: { type: 'string', maxLength: 80 },
++      },
++    },
++  },
+ ];
+ 
+ function freeze(value) {
+diff --git a/src/voice/actionSchemas.test.mjs b/src/voice/actionSchemas.test.mjs
+index b96791c..4716a9a 100644
+--- a/src/voice/actionSchemas.test.mjs
++++ b/src/voice/actionSchemas.test.mjs
+@@ -20,7 +20,9 @@ test('the complete Realtime tool payload pins the additive analyst, satellite, L
+     .update(
+       JSON.stringify(
+         stable(
+-          GEV_REALTIME_TOOLS.filter((tool) => tool.name !== 'set_cyber_sonar'),
++          GEV_REALTIME_TOOLS.filter(
++            (tool) => !['set_cyber_sonar', 'control_ocean'].includes(tool.name),
++          ),
+         ),
+       ),
+     )
+@@ -87,7 +89,10 @@ test('metadata cannot add tools, fields, types or enum values', () => {
+ 
+ test('all legacy action arguments are byte-identical after removing the deliberate additions', () => {
+   const legacy = structuredClone(GEV_ACTION_SCHEMAS).filter(
+-    (tool) => !['next_satellite_pass', 'set_cyber_sonar'].includes(tool.name),
++    (tool) =>
++      !['next_satellite_pass', 'set_cyber_sonar', 'control_ocean'].includes(
++        tool.name,
++      ),
+   );
+   const layers = legacy.find((tool) => tool.name === 'analyst_query').parameters
+     .properties.layers.items;
+diff --git a/src/voice/gevActions.js b/src/voice/gevActions.js
+index 6d17600..713989b 100644
+--- a/src/voice/gevActions.js
++++ b/src/voice/gevActions.js
+@@ -978,6 +978,10 @@ export function createGevActionRunner({
+       };
+     }
+ 
++    if (name === 'control_ocean') {
++      return controlOcean(args);
++    }
++
+     if (name === 'next_satellite_pass') {
+       return nextSatellitePass(viewer, dataManager, args);
+     }
+@@ -4471,3 +4475,22 @@ async function runAnalystQuery(
+     ...(countsReconciliation ? { countsReconciliation } : {}),
+   };
+ }
++
++
++/** Voice bridge to the ocean module (src/ocean), which publishes window.__gevOcean. */
++async function controlOcean(args = {}) {
++  const api = typeof window !== 'undefined' ? window.__gevOcean : null;
++  const action = 'control_ocean';
++  if (!api) return { ok: false, action, error: 'Ocean module is not loaded yet.' };
++  switch (args.action) {
++    case 'ocean_on': return { action, ...(await api.setOcean(true)) };
++    case 'ocean_off': return { action, ...(await api.setOcean(false)) };
++    case 'launch_sub': return { action, ...(await api.launchSub()) };
++    case 'recall_sub': return { action, ...api.recallSub() };
++    case 'dive': return { action, ...(await api.diveTo(args.depthM)) };
++    case 'surface': return { action, ...api.surface() };
++    case 'go_to_site': return { action, ...(await api.goToSite(args.site)) };
++    case 'status': return { ok: true, action, ...api.status() };
++    default: return { ok: false, action, error: 'Unknown ocean action.' };
++  }
++}

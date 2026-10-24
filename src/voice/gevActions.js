@@ -978,6 +978,10 @@ export function createGevActionRunner({
       };
     }
 
+    if (name === 'control_ocean') {
+      return controlOcean(args);
+    }
+
     if (name === 'next_satellite_pass') {
       return nextSatellitePass(viewer, dataManager, args);
     }
@@ -4470,4 +4474,23 @@ async function runAnalystQuery(
       : {}),
     ...(countsReconciliation ? { countsReconciliation } : {}),
   };
+}
+
+
+/** Voice bridge to the ocean module (src/ocean), which publishes window.__gevOcean. */
+async function controlOcean(args = {}) {
+  const api = typeof window !== 'undefined' ? window.__gevOcean : null;
+  const action = 'control_ocean';
+  if (!api) return { ok: false, action, error: 'Ocean module is not loaded yet.' };
+  switch (args.action) {
+    case 'ocean_on': return { action, ...(await api.setOcean(true)) };
+    case 'ocean_off': return { action, ...(await api.setOcean(false)) };
+    case 'launch_sub': return { action, ...(await api.launchSub()) };
+    case 'recall_sub': return { action, ...api.recallSub() };
+    case 'dive': return { action, ...(await api.diveTo(args.depthM)) };
+    case 'surface': return { action, ...api.surface() };
+    case 'go_to_site': return { action, ...(await api.goToSite(args.site)) };
+    case 'status': return { ok: true, action, ...api.status() };
+    default: return { ok: false, action, error: 'Unknown ocean action.' };
+  }
 }

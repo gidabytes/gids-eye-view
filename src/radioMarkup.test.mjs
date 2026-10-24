@@ -27,9 +27,11 @@ function realtimeTools() { return GEV_REALTIME_TOOLS; }
 
 test('Realtime schema exposes the authoritative 30-tool inventory', () => {
   const tools = realtimeTools();
-  assert.equal(tools.length, 30);
+  // 30 shipped tools + the additive ocean/submarine tool (control_ocean).
+  assert.equal(tools.length, 31);
   const names = tools.map((tool) => tool.name);
-  assert.equal(new Set(names).size, 30, 'tool names are unique');
+  assert.equal(new Set(names).size, 31, 'tool names are unique');
+  assert.ok(names.includes('control_ocean'));
   assert.ok(names.includes('set_context_mode'));
   assert.ok(names.includes('control_cockpit'));
   assert.ok(names.includes('select_nearest_aircraft'));
@@ -186,6 +188,8 @@ test('no unchanged Realtime tool definition drifts silently', () => {
     'next_satellite_pass',
     // Local ADS-B adds one layer enum value and its common-name mapping.
     'set_layer_visibility',
+    // Additive: ocean view + exploration submarine (src/ocean).
+    'control_ocean',
   ]);
   const unchanged = realtimeTools()
     .filter((tool) => !TOUCHED.has(tool.name))

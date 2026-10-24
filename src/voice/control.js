@@ -1,5 +1,8 @@
+import { prefersTapToTalk, resolveVoiceControlHint } from './realtimeInputPolicy.js';
+
 /** Build the voice control independently of its connection backend. */
 export function createVoiceControl({ reset = false } = {}) {
+  const speakHint = prefersTapToTalk() ? 'tap the mic to speak' : 'hold Space to speak';
   let root = document.getElementById('gev-voice-control');
   if (root && reset) {
     root.remove();
@@ -15,7 +18,7 @@ export function createVoiceControl({ reset = false } = {}) {
         <div class="gev-voice-kicker">AI AGENT</div>
         <div id="gev-voice-status">OFF</div>
       </div>
-      <button id="gev-voice-button" type="button" aria-label="Voice control — activate to toggle voice; hold Space to speak" aria-describedby="gev-voice-help">
+      <button id="gev-voice-button" type="button" aria-label="Voice control — activate to toggle voice; ${speakHint}" aria-describedby="gev-voice-help">
         <span class="gev-mic-orbit"><img src="/mic.svg" alt="" /></span>
         <span class="gev-mic-label">ON/OFF</span>
       </button>
@@ -27,7 +30,7 @@ export function createVoiceControl({ reset = false } = {}) {
       </div>
       <div id="gev-voice-help" class="gev-voice-help-tray" role="tooltip">
         <span class="gev-voice-help-kicker">VOICE CONTROL</span>
-        <span class="gev-voice-help-detail">Hold Space to speak · tap Space to activate focused controls</span>
+        <span class="gev-voice-help-detail">${resolveVoiceControlHint(false, false)}</span>
       </div>
       <div class="gev-voice-error-tray" role="alert" aria-live="assertive">
         <div class="gev-voice-error-header">

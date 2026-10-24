@@ -2,6 +2,28 @@
 
 ## [Unreleased]
 
+- Add Ocean view and a pilotable exploration submarine (`src/ocean/`). The
+  "Ocean Floor Terrain" exploration toggle, which only saved a setting before,
+  now switches the globe to Cesium World Bathymetry (ion asset 2426648, through
+  the existing Cesium ion token) with keyless GEBCO shaded relief, hiding the
+  photorealistic 3D tiles until it is turned off. A right-edge dock adds
+  🌊 Ocean, 🛥 Sub and a dive-site picker. The submarine is a simulation over
+  public bathymetry: it probes the seabed every ~0.5 s, keeps 15 m clearance,
+  stops at land, darkens with depth and shows a depth/seafloor/heading/speed/zone
+  HUD with touch controls. Keys W/S/A/D, Q/E rise/dive, Shift explore speed,
+  X camera are captured only while the sub is active; Space stays
+  push-to-talk. New additive voice tool `control_ocean` (31st tool; all 30
+  existing tool definitions are byte-identical). The viewer is now published as
+  `window.__gevViewer` (and `window.viewer` / `window.Cesium` if unset), which
+  also lets the existing "see through the ocean surface" toggle find it.
+- Add `scripts/install-ocean-tools.sh`: optional ocean & sonar Python
+  toolchain in its own venv (bathy, echopype, oceanstream, PINGMapper,
+  pytritech, PyGMT, py3dtiles, ObsPy, OpenCV, xarray/netCDF4, rasterio,
+  geopandas, JupyterLab), with an optional MB-System source build
+  (`--with-mbsystem`) and a `gev-ocean-check` smoke test.
+- Add the missing `@capacitor-community/text-to-speech` dependency that
+  `src/voice/voiceBridge.js` imports; without it `vite build` failed.
+
 - Add Norway's road cameras from Statens vegvesen as a CCTV pack. The camera
   list is one keyless GeoJSON request to the agency's OGC API view of its
   DATEX 3.1 CCTV table, so no DATEX account is needed. Every working camera

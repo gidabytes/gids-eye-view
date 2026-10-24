@@ -149,9 +149,38 @@ export function resolveVoiceVisualizerSpeaker(
  * @returns {string}
  */
 export function resolveVoiceControlHint(pushToTalkMode, pushToTalkKeyHeld) {
+  if (prefersTapToTalk()) {
+    return pushToTalkMode && pushToTalkKeyHeld ? 'Listening...' : 'Tap the mic to speak';
+  }
   return pushToTalkMode && pushToTalkKeyHeld
     ? 'Release Space to send'
     : 'Hold Space to speak · tap Space to activate focused controls';
+}
+
+/**
+ * True in the Android app and on touch-first screens, which have no Space bar
+ * to hold, so the hints say "tap the mic" instead. False outside a browser.
+ * @returns {boolean}
+ */
+export function prefersTapToTalk() {
+  const w = globalThis.window;
+  if (!w) return false;
+  if (w.Capacitor?.isNativePlatform?.()) return true;
+  try {
+    return Boolean(w.matchMedia?.('(pointer: coarse)')?.matches);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * The short push-to-talk status line for the current device.
+ * @param {boolean} keyHeld
+ * @returns {string}
+ */
+export function pushToTalkStatusHint(keyHeld) {
+  if (prefersTapToTalk()) return keyHeld ? 'Listening...' : 'Tap mic to speak';
+  return keyHeld ? 'Release Space to send' : 'Hold Space to talk';
 }
 
 /**

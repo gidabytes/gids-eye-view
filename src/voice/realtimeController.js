@@ -8,6 +8,7 @@ import { RealtimeInput } from './realtimeInput.js';
 
 import { shouldPauseRadioForVoice } from './realtimeProtocol.js';
 import { postDebugLog } from './realtimeDiagnostics.js';
+import { pushToTalkStatusHint } from './realtimeInputPolicy.js';
 
 export {
   shouldPauseRadioForVoice,
@@ -32,6 +33,7 @@ export {
   selectVoiceVisualizerSignal,
   resolveVoiceVisualizerSpeaker,
   resolveVoiceControlHint,
+  pushToTalkStatusHint,
   gateVoiceVisualizerLevel,
 } from './realtimeInputPolicy.js';
 
@@ -263,9 +265,7 @@ export class GevRealtimeController extends RealtimeFacade {
     this.ui.status.textContent = STATUS[status] || STATUS.idle;
     const resolvedDetail =
       status === 'listening' && this.pushToTalkMode
-        ? this.pushToTalkKeyHeld
-          ? 'Release Space to send'
-          : 'Hold Space to talk'
+        ? pushToTalkStatusHint(this.pushToTalkKeyHeld)
         : detail;
     const primaryDetail =
       status === 'error'

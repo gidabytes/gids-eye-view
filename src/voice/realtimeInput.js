@@ -9,6 +9,7 @@ import {
   selectVoiceVisualizerSignal,
   resolveVoiceVisualizerSpeaker,
   resolveVoiceControlHint,
+  pushToTalkStatusHint,
   gateVoiceVisualizerLevel,
   resetVoiceVisualizerBars,
 } from './realtimeInputPolicy.js';
@@ -111,7 +112,7 @@ export class RealtimeInput {
           this.ui.root.dataset.pushToTalk = 'held';
           this.setMicrophoneEnabled(true);
           if (this.status === 'listening')
-            this.setStatus('listening', 'Release Space to send');
+            this.setStatus('listening', pushToTalkStatusHint(true));
         } else {
           this.start({ pushToTalk: true });
           // start() performs a controlled stop() before connecting. Restore the
@@ -184,7 +185,7 @@ export class RealtimeInput {
     if (!this.pushToTalkMode) return;
     this.setMicrophoneEnabled(false);
     if (this.status === 'listening')
-      this.setStatus('listening', 'Hold Space to talk');
+      this.setStatus('listening', pushToTalkStatusHint(false));
     else this.updateVoiceButtonLabel();
   }
 

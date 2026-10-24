@@ -1,11 +1,11 @@
 {
-  "name": "gods-eye-view",
+  "name": "gids-eye-view",
   "private": true,
   "version": "0.2.1",
-  "description": "A real-time intelligence console for planet Earth — photorealistic 3D globe, live aircraft/ships/satellites/earthquakes/CCTV, and hands-free voice control. Runs in a browser.",
+  "description": "Gid's Eye View - 3D geospatial situational awareness",
   "type": "module",
   "license": "MIT",
-  "author": "Bilawal Sidhu",
+  "author": "Gidabytes",
   "homepage": "https://github.com/bilawalsidhu/gods-eye-view#readme",
   "repository": {
     "type": "git",
@@ -53,13 +53,22 @@
     "mcp": "node server/mcp/stdio.js"
   },
   "dependencies": {
+    "@capacitor-community/text-to-speech": "^8.0.2",
+    "@capacitor/android": "^8.5.3",
+    "@capacitor/app": "^8.1.2",
+    "@capacitor/cli": "^8.5.3",
+    "@capacitor/core": "^8.5.3",
+    "@capacitor/geolocation": "^8.2.4",
+    "@capgo/capacitor-speech-recognition": "^8.4.1",
     "@jtarrio/signals": "^0.10.0",
     "@jtarrio/webrtlsdr": "^3.0.6",
     "@mapbox/vector-tile": "^3.0.0",
     "@meri-imperiumi/eccodes-wasm": "^2.48.2",
+    "@panoramax/web-viewer": "^5.3.1",
     "cesium": "^1.124.0",
     "egm96-universal": "^1.1.1",
     "hls.js": "^1.7.3",
+    "mapillary-js": "^4.1.2",
     "mgrs": "^2.1.0",
     "pbf": "^5.1.2",
     "satellite.js": "^6.0.2"

@@ -599,4 +599,16 @@ export const ACTION_DESCRIPTIONS = {
       'Predict the next pass in 24 hours for one satellite in the loaded catalog, identified by exact NORAD ID or name. Ambiguous names return candidates: ask for a choice rather than selecting one. Defaults to geometric passes; visibleOnly requires estimated illumination and a dark observer sky, which does not guarantee naked-eye visibility. Uses camera location unless coordinates are supplied.',
     $position: 1,
   },
+  control_ocean: {
+    description:
+      'Ocean view and the exploration submarine (a simulation over public bathymetry; it never controls or tracks a real vessel). ocean_on/ocean_off switch the seafloor view; launch_sub spawns the sub under the camera; dive descends to depthM (default 100 m deeper); surface returns to 0 m; go_to_site teleports the sub to a named dive site (Challenger Deep, Philippine Trench, Tubbataha, Cebu Strait, Great Barrier Reef, Mid-Atlantic Ridge, Titanic, Puerto Rico Trench); status reports depth, seafloor, heading, speed and ocean zone. The pilot steers with W/S/A/D and Q/E.',
+    $position: 1,
+    parameters: {
+      properties: {
+        action: { description: 'What to do.' },
+        depthM: { description: 'Target depth in metres for dive.' },
+        site: { description: 'Dive site name for go_to_site.' },
+      },
+    },
+  },
 };

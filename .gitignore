@@ -13,3 +13,33 @@ output/
 pinokio/ENVIRONMENT
 pinokio/.installed
 SHIP/
+
+# Added by gids-android.sh
+.env
+.env.bak.*
+.env.old
+dist/
+android/app/build/
+android/build/
+android/.gradle/
+android/local.properties
+*.keystore
+*.jks
+gids-keys.env
+
+# Local clutter kept out of the repo (2026-10-24 cleanup)
+_archive/
+.gev-backup/
+gods-eye-view-free/
+src.bak.*/
+*.bak
+*.bak.*
+*.purge.*
+*.hotfix.*
+*.recovery.*
+*.pre-v*
+# Personal photos and accidental ImageMagick `import` screen grabs at the top level
+/*.jpg
+/*.jpeg
+/*.png
+/mobile.js

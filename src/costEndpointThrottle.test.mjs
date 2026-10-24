@@ -4,7 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Readable } from 'node:stream';
 import { readPinokioEnvironment } from '../scripts/pinokio-environment.mjs';
-import { geminiRealtimeProxy } from 'gods-eye-view/server/providers/gemini';
+import { geminiRealtimeProxy } from 'gids-eye-view/server/providers/gemini';
 import {
   makeCostRateLimiter,
   resolvePerMinuteCap,
